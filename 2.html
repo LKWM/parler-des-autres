@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chapitre 1: Parler des autres - Leçon 2</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js for Audio Synth -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans', 'Noto Sans KR', sans-serif;
+            overflow: hidden;
+            background-color: white;
+            touch-action: manipulation;
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+            padding: 0;
+        }
+
+        #game-container {
+            position: relative;
+            background: white;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (min-width: 768px) {
+            #game-container {
+                border-radius: 0;
+                margin: 0;
+                box-shadow: none;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .sentence-part {
+            display: inline-block;
+            white-space: pre;
+        }
+
+        .btn-hover:active {
+            transform: scale(0.95);
+        }
+
+        .korean-input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-white">
+
+    <div id="game-container">
+        <!-- Progress Bar -->
+        <div class="absolute top-0 left-0 w-full h-1.5 bg-gray-100 z-50">
+            <div id="progress-bar" class="h-full bg-indigo-500 transition-all duration-300" style="width: 0%"></div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div id="content-area" class="flex-1 w-full relative overflow-hidden flex flex-col items-center justify-center p-6">
+            <!-- Dynamic Content -->
+        </div>
+
+        <!-- Navigation Bar -->
+        <div id="nav-area" class="w-full h-20 px-6 md:px-12 flex justify-between items-center bg-white border-t border-gray-100 z-40 shrink-0">
+            <button type="button" id="prev-btn" class="btn-hover bg-gray-100 text-gray-600 w-12 h-12 rounded-full flex items-center justify-center hover:bg-gray-200 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+                <i class="ph ph-arrow-left text-xl font-bold"></i>
+            </button>
+            
+            <button type="button" id="next-btn" class="btn-hover bg-indigo-600 text-white px-6 py-3 rounded-full font-bold shadow-lg flex items-center gap-2 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                Continuer <i class="ph ph-arrow-right font-bold"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const BASE_44_ORIGIN = "https://coreeno.base44.app"; 
+        const CLOVA_API_FUNCTION_URL = BASE_44_ORIGIN + '/api/functions/naverClovaSpeech';
+
+        // --- Data & State Management ---
+        const exerciseStates = {}; 
+
+        const lessonData = [
+            {
+                type: 'cover',
+                chapter: 'Chapitre 1: Parler des autres',
+                title: 'Leçon 2: Pratique (1) Parler des autres',
+                btnText: 'Commencer'
+            },
+            {
+                type: 'learn',
+                korean: "선생님은 한국 사람이 아니에요.",
+                subtitle1: `<span class="text-red-500">Professeur</span> <span class="text-orange-500">Corée</span> <span class="text-blue-600">personne</span> <span class="text-green-600">n’est pas</span>.`,
+                subtitle2: "Le professeur n’est pas coréen.",
+                parts: [
+                    { text: "선생님", meaning: "professeur", color: "text-red-500" },
+                    { text: "은", meaning: "", color: "text-gray-400" },
+                    { text: " ", meaning: " ", color: "" },
+                    { text: "한국", meaning: "Corée", color: "text-orange-500" },
+                    { text: " ", meaning: " ", color: "" },
+                    { text: "사람", meaning: "personne", color: "text-blue-600" },
+                    { text: "이", meaning: "", color: "text-gray-400" },
+                    { text: " ", meaning: " ", color: "" },
+                    { text: "아니에요.", meaning: "n’est pas", color: "text-green-600" }
+                ],
+                explanation: "Comme nous l'avons vu dans le programme <span class='font-bold'>Parler de soi</span>, on utilise <아니에요> pour nier le fait. Il faut ajouter <이> après le complément qui se termine par une consonne.",
+                mainAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1768634352/L2S1_pzpuwo.mp3",
+                explAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1768634482/audio_8_rlhicf.mp3"
+            },
+            {
+                type: 'repeat',
+                korean: "선생님은 한국 사람이 아니에요.",
+                subtitle1: "Le professeur n’est pas une personne coréenne.",
+                subtitle2: "Le professeur n’est pas coréen.",
+                refAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1768634352/L2S1_pzpuwo.mp3"
+            },
+            {
+                type: 'learn',
+                korean: "동우 씨는 가수가 아니에요.",
+                subtitle1: `<span class="text-red-500">Dongwoo</span> <span class="text-blue-600">chanteur</span> <span class="text-green-600">n’est pas</span>.`,
+                subtitle2: "Dongwoo n’est pas chanteur.",
+                parts: [
+                    { text: "동우 씨", meaning: "Dongwoo", color: "text-red-500" },
+                    { text: "는", meaning: "", color: "text-gray-400" },
+                    { text: " ", meaning: " ", color: "" },
+                    { text: "가수", meaning: "chanteur", color: "text-blue-600" },
+                    { text: "가", meaning: "", color: "text-gray-400" },
+                    { text: " ", meaning: " ", color: "" },
+                    { text: "아니에요.", meaning: "n’est pas", color: "text-green-600" }
+                ],
+                explanation: "Lorsque vous utilisez <아니에요> pour faire une phrase négative, Il faut ajouter <가> après le complément qui se termine par une voyelle.",
+                mainAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1768634356/L2S2_jcete1.mp3",
+                explAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1768634459/audio_9_cdzpfz.mp3"
+            },
+            {
+                type: 'repeat',
+                korean: "동우 씨는 가수가 아니에요.",
+                subtitle1: "Dongwoo n’est pas chanteur",
+                subtitle2: "Dongwoo n’est pas chanteur.",
+                refAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1768634356/L2S2_jcete1.mp3"
+            },
+            {
+                type: 'repeat',
+                korean: "엄마는 간호사예요.",
+                subtitle1: "Maman est infirmière.",
+                subtitle2: "Ma maman est infirmière.",
+                refAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1768634360/L2S3_hmbrcc.mp3"
+            },
+            {
+                type: 'repeat',
+                korean: "간호사는 프랑스 사람이에요.",
+                subtitle1: "L’infirmier est une personne française.",
+                subtitle2: "L’infirmier est français.",
+                refAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1768634364/L2S4_tczok5.mp3"
+            },
+            {
+                type: 'listening_quiz',
+                question: "Choisissez la bonne traduction.",
+                audioUrl: null, // Fallback TTS
+                word: "가수",
+                options: ["Médecin", "Chanteur", "Policier", "Infirmier"],
+                answer: 1 
+            },
+            {
+                type: 'speaking_challenge',
+                promptFr: "Je suis infirmier(e).",
+                promptKr: "저는 ___예요.",
+                target: "저는 간호사예요",
+                hintAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1768634368/L2S5_jojq6e.mp3"
+            },
+            {
+                type: 'speaking_challenge',
+                promptFr: "Le professeur est français.",
+                promptKr: "선생님_ ___ 사람이에요.",
+                target: "선생님은 프랑스 사람이에요",
+                hintAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1768634372/L2S6_nm0xs6.mp3"
+            },
+            {
+                type: 'quiz',
+                question: "Choisissez la particule qui complète la phrase.",
+                context: "지민 씨_ 경찰_ 아니에요.",
+                meaning: "Jimin n’est pas policier.",
+                options: ["은, 이", "는, 이", "가, 가", "이, 는", "이, 이", "는, 가"],
+                answer: 1 
+            },
+            {
+                type: 'speaking_challenge',
+                promptFr: "Jimin n’est pas coréen(ne).",
+                promptKr: "지민 __ 한국 ___ 아니에요.",
+                target: "지민 씨는 한국 사람이 아니에요",
+                hintAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1768634381/L2S8_jbpxmo.mp3"
+            },
+            {
+                type: 'speaking_challenge',
+                promptFr: "Dongwoo est policier.",
+                promptKr: "동우 씨_ 경찰___.",
+                target: "동우 씨는 경찰이에요", 
+                hintAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1768634385/L2S9_tdj5mo.mp3"
+            },
+            {
+                type: 'writing_challenge',
+                promptFr: "혜원 n’est pas infirmière.",
+                target: "혜원 씨는 간호사가 아니에요", 
+                hintAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1768634388/L2S10_vco6ix.mp3"
+            },
+            {
+                type: 'writing_challenge',
+                promptFr: "Le chanteur n’est pas français.",
+                target: "가수는 프랑스 사람이 아니에요",
+                hintAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1768634392/L2S11_lvi4pd.mp3"
+            },
+            {
+                type: 'outro',
+                text: "leçon 3 에서 더 다양한 표현을 말하고 써 보세요!",
+                audio: null 
+            }
+        ];
+
+        // --- State ---
+        let currentIndex = 0;
+        let audioPlayer = new Audio();
+        let isRecording = false;
+        let mediaRecorder;
+        let audioChunks = [];
+        let correctSound = null;
+        let completionSynth = null;
+        let pageTurnSynth = null;
+        let hasInteracted = false;
+        const visitedPages = new Set();
+        let autoPlayTimeout = null;
+        let recordingTimeout = null; // Added for recording limit
+
+        // --- Tone.js ---
+        async function initAudio() {
+            if (hasInteracted) return;
+            await Tone.start();
+            correctSound = new Tone.Synth().toDestination();
+            completionSynth = new Tone.PolySynth().toDestination();
+            pageTurnSynth = new Tone.MembraneSynth({ envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination();
+            hasInteracted = true;
+        }
+
+        function playPageSound() {
+            if (pageTurnSynth && hasInteracted) pageTurnSynth.triggerAttackRelease("C2", "32n");
+        }
+
+        // --- DOM ---
+        const contentArea = document.getElementById('content-area');
+        const progressBar = document.getElementById('progress-bar');
+        const nextBtn = document.getElementById('next-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const navArea = document.getElementById('nav-area');
+
+        // --- Core Functions ---
+        function updateProgress() {
+            const progress = ((currentIndex) / (lessonData.length - 1)) * 100;
+            progressBar.style.width = `${progress}%`;
+            
+            if (currentIndex === 0) prevBtn.classList.add('invisible');
+            else {
+                prevBtn.classList.remove('invisible');
+                prevBtn.disabled = false;
+            }
+            
+            const currentData = lessonData[currentIndex];
+            const state = getExerciseState(currentIndex);
+
+            let canProceed = true;
+            if (['quiz', 'listening_quiz'].includes(currentData.type)) {
+                canProceed = false; 
+            } else if (currentData.type === 'speaking_challenge' || currentData.type === 'writing_challenge') {
+                if (state.passed || state.attempts >= 3) canProceed = true;
+                else canProceed = false;
+            } else if (currentData.type === 'repeat') {
+                 if (state.passed || state.attempts >= 3) canProceed = true;
+                 else canProceed = false;
+            }
+
+            nextBtn.disabled = !canProceed;
+
+            if (currentIndex === lessonData.length - 1) {
+                nextBtn.innerHTML = `Terminer <i class="ph ph-check text-xl"></i>`;
+            } else {
+                nextBtn.innerHTML = `Continuer <i class="ph ph-arrow-right font-bold"></i>`;
+                navArea.classList.remove('hidden');
+            }
+        }
+
+        function stopAudio() {
+            if(audioPlayer) {
+                audioPlayer.pause();
+                audioPlayer.currentTime = 0;
+            }
+            if(autoPlayTimeout) clearTimeout(autoPlayTimeout);
+        }
+
+        function playAudio(url, onEndCallback, delay = 0) {
+            stopAudio();
+            if (!url) return;
+            autoPlayTimeout = setTimeout(() => {
+                audioPlayer.src = url;
+                audioPlayer.play().catch(e => console.log("Audio blocked:", e));
+                audioPlayer.onended = () => { if (onEndCallback) onEndCallback(); };
+            }, delay);
+        }
+
+        function playAutoAudioIfNeeded(url) {
+            if (!visitedPages.has(currentIndex)) {
+                visitedPages.add(currentIndex);
+                playAudio(url, null, 1000); 
+            }
+        }
+
+        function getExerciseState(index) {
+            if (!exerciseStates[index]) exerciseStates[index] = { attempts: 0, passed: false, hintLevel: 0, lastScore: 0, lastText: "" };
+            return exerciseStates[index];
+        }
+
+        // --- Render Functions ---
+
+        function renderCover(data) {
+            contentArea.innerHTML = `
+                <div class="fade-in flex flex-col items-center justify-center gap-6 h-full text-center">
+                    <div class="bg-indigo-100 p-6 rounded-full shadow-md">
+                        <i class="ph ph-book-open text-5xl md:text-6xl text-indigo-600"></i>
+                    </div>
+                    <div class="space-y-4 max-w-3xl">
+                        <h1 class="text-lg font-bold text-indigo-600 uppercase tracking-widest">${data.chapter}</h1>
+                        <h2 class="text-2xl font-bold text-gray-800 leading-tight">${data.title}</h2>
+                    </div>
+                </div>
+            `;
+            visitedPages.add(currentIndex);
+        }
+
+        function renderLearn(data) {
+            let sentenceHtml = data.parts.map(part => `<span class="${part.color} sentence-part text-2xl md:text-4xl font-bold">${part.text === " " ? "&nbsp;" : part.text}</span>`).join('');
+            
+            contentArea.innerHTML = `
+                <div class="fade-in w-full h-full flex flex-col items-center justify-center gap-2 py-2 max-w-5xl mx-auto">
+                    <div class="bg-white rounded-2xl shadow-lg w-full max-w-2xl border border-indigo-50 relative flex flex-col items-center justify-center p-4 md:p-6 h-auto shrink-0">
+                        <div class="text-center mb-2 z-10">
+                            <div class="flex flex-wrap justify-center items-end leading-snug">
+                                ${sentenceHtml}
+                            </div>
+                        </div>
+                        <button type="button" id="main-play-btn" class="relative z-20 w-14 h-14 md:w-16 md:h-16 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105 transition-all shadow-md flex items-center justify-center my-2 shrink-0">
+                             <i class="ph ph-speaker-high text-2xl md:text-3xl"></i>
+                        </button>
+                        <div class="space-y-1 text-center z-10 mt-2">
+                            <p class="text-base md:text-lg italic font-serif text-gray-600 bg-gray-50 px-4 py-1 rounded-lg inline-block">
+                                ${data.subtitle1}
+                            </p>
+                            <p class="text-lg md:text-xl font-medium text-indigo-900 block">${data.subtitle2}</p>
+                        </div>
+                    </div>
+                    <div class="w-full max-w-2xl bg-indigo-600 text-white p-4 rounded-xl shadow-md text-center text-sm md:text-base md:leading-loose leading-relaxed shrink-0">
+                        ${data.explanation}
+                    </div>
+                </div>
+            `;
+            if (data.explAudio) playAutoAudioIfNeeded(data.explAudio);
+            document.getElementById('main-play-btn').onclick = () => playAudio(data.mainAudio);
+        }
+
+        function renderRepeat(data) {
+            renderCommonSpeaking(data, "repeat");
+        }
+
+        function renderSpeakingChallenge(data) {
+            renderCommonSpeaking(data, "challenge");
+        }
+
+        function renderCommonSpeaking(data, mode) {
+            const state = getExerciseState(currentIndex);
+            
+            let displayKorean = "";
+            let showAudioBtn = false;
+
+            if (mode === "repeat") {
+                displayKorean = data.korean;
+                showAudioBtn = true;
+            } else {
+                if (state.passed || state.attempts >= 2) {
+                    displayKorean = data.target; 
+                } else {
+                    displayKorean = data.promptKr; 
+                }
+                if (state.attempts >= 1 || state.passed) {
+                    showAudioBtn = true;
+                }
+            }
+
+            contentArea.innerHTML = `
+                <div class="fade-in w-full h-full flex flex-col items-center justify-center gap-4 text-center max-w-2xl mx-auto">
+                    <h3 class="text-sm md:text-base font-bold text-indigo-600 uppercase tracking-wider flex-shrink-0">
+                        ${mode === 'repeat' ? 'Répétez après moi' : 'Parlez en coréen'}
+                    </h3>
+                    
+                    <div class="bg-white w-full p-8 md:p-10 rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center gap-6 flex-shrink-0">
+                        <div class="space-y-2">
+                             ${mode === 'challenge' ? `<p class="text-gray-500 text-lg mb-2">${data.promptFr}</p>` : ''}
+                             <h2 class="text-3xl md:text-4xl font-bold text-gray-800 leading-snug">${displayKorean}</h2>
+                             ${mode === 'repeat' ? `<p class="text-base md:text-lg text-gray-500">${data.subtitle2}</p>` : ''}
+                        </div>
+                        
+                        <div class="flex justify-center gap-4 mt-2">
+                            <button type="button" id="listen-btn" class="${showAudioBtn ? '' : 'hidden'} w-16 h-16 md:w-20 md:h-20 rounded-full bg-indigo-100 text-indigo-600 hover:bg-indigo-200 flex items-center justify-center transition-all shadow-md">
+                                <i class="ph ph-speaker-high text-3xl md:text-4xl"></i>
+                            </button>
+                            
+                            <button type="button" id="record-btn" class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-red-100 text-red-500 hover:bg-red-200 flex items-center justify-center transition-all ring-4 ring-transparent shadow-md">
+                                <i class="ph ph-microphone text-3xl md:text-4xl"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="feedback-area" class="h-16 flex items-center justify-center w-full flex-shrink-0">
+                        <p class="text-gray-400 text-sm">Appuyez sur le micro pour parler</p>
+                    </div>
+                </div>
+            `;
+
+            const listenBtn = document.getElementById('listen-btn');
+            const recordBtn = document.getElementById('record-btn');
+            const feedbackArea = document.getElementById('feedback-area');
+
+            // Feedback Logic with Transcribed Text
+            if (state.passed) {
+                feedbackArea.innerHTML = `
+                    <div class="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm w-full">
+                        <span class="font-bold block">Très bien ! Score: ${state.lastScore}</span>
+                        ${state.lastText ? `<span class="text-xs font-normal opacity-80">"${state.lastText}"</span>` : ''}
+                    </div>`;
+                recordBtn.disabled = true;
+                recordBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else if (state.attempts >= 3) {
+                feedbackArea.innerHTML = `
+                    <div class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm w-full">
+                        <span class="font-bold block">Passons à la suite. Score: ${state.lastScore}</span>
+                        ${state.lastText ? `<span class="text-xs font-normal opacity-80">"${state.lastText}"</span>` : ''}
+                    </div>`;
+                recordBtn.disabled = true;
+                recordBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else if (state.attempts > 0) {
+                feedbackArea.innerHTML = `
+                    <div class="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg text-sm w-full">
+                        <span class="font-bold block">Essayez encore (${state.attempts}/3). Score: ${state.lastScore}</span>
+                        ${state.lastText ? `<span class="text-xs font-normal opacity-80">"${state.lastText}"</span>` : ''}
+                    </div>`;
+            }
+
+            listenBtn.onclick = () => {
+                const audioUrl = mode === 'repeat' ? data.refAudio : data.hintAudio;
+                playAudio(audioUrl);
+            };
+
+            recordBtn.onclick = async () => {
+                if (state.attempts >= 3 || state.passed) return; 
+                if (!isRecording) {
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        mediaRecorder = new MediaRecorder(stream);
+                        audioChunks = [];
+                        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                        
+                        mediaRecorder.onstop = async () => {
+                            if (recordingTimeout) clearTimeout(recordingTimeout);
+                            try {
+                                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                                const reader = new FileReader();
+                                reader.readAsDataURL(audioBlob);
+                                reader.onloadend = async () => {
+                                    const base64 = reader.result.split(',')[1];
+                                    const refText = mode === 'repeat' ? data.korean : data.target;
+                                    await processSpeech(base64, refText, currentIndex);
+                                };
+                            } catch (e) {
+                                console.error("Error processing audio", e);
+                            }
+                        };
+                        
+                        mediaRecorder.start();
+                        isRecording = true;
+                        
+                        recordingTimeout = setTimeout(() => {
+                            if (isRecording && mediaRecorder.state === 'recording') {
+                                mediaRecorder.stop();
+                                isRecording = false;
+                                if (document.contains(recordBtn)) {
+                                    recordBtn.classList.remove('bg-red-500', 'text-white', 'ring-red-200');
+                                    recordBtn.innerHTML = '<i class="ph ph-microphone text-3xl md:text-4xl"></i>';
+                                    if(feedbackArea) feedbackArea.innerHTML = '<p class="text-gray-500 text-sm">Analyse...</p>';
+                                }
+                            }
+                        }, 12000);
+
+                        recordBtn.classList.add('bg-red-500', 'text-white', 'ring-red-200');
+                        recordBtn.innerHTML = '<i class="ph ph-stop text-3xl md:text-4xl"></i>';
+                        feedbackArea.innerHTML = '<p class="text-indigo-600 animate-pulse text-sm">Enregistrement...</p>';
+                    } catch (err) {
+                        console.error(err);
+                        feedbackArea.innerHTML = '<p class="text-red-400 text-sm">Microphone requis.</p>';
+                    }
+                } else {
+                    if (recordingTimeout) clearTimeout(recordingTimeout);
+                    mediaRecorder.stop();
+                    isRecording = false;
+                    recordBtn.classList.remove('bg-red-500', 'text-white', 'ring-red-200');
+                    recordBtn.innerHTML = '<i class="ph ph-microphone text-3xl md:text-4xl"></i>';
+                    feedbackArea.innerHTML = '<p class="text-gray-500 text-sm">Analyse...</p>';
+                }
+            };
+        }
+
+        function renderListeningQuiz(data) {
+            contentArea.innerHTML = `
+                <div class="fade-in w-full h-full relative flex flex-col justify-center items-center">
+                    <div class="w-full max-w-2xl flex flex-col gap-8 items-center">
+                        <div class="w-full bg-indigo-600 text-white p-5 rounded-2xl shadow-lg text-center">
+                             <h2 class="text-lg md:text-xl font-medium leading-snug">${data.question}</h2>
+                        </div>
+                        
+                        <button type="button" id="quiz-audio-btn" class="w-20 h-20 rounded-full bg-indigo-100 text-indigo-600 hover:bg-indigo-200 flex items-center justify-center shadow-lg transition-transform hover:scale-105">
+                            <i class="ph ph-speaker-high text-4xl"></i>
+                        </button>
+
+                        <div class="grid grid-cols-2 gap-4 w-full">
+                            ${data.options.map((opt, idx) => `
+                                <button type="button" onclick="handleQuizAnswer(${idx}, ${data.answer}, this)" class="quiz-opt-btn w-full p-4 rounded-xl border-2 border-gray-200 text-gray-700 font-bold hover:border-indigo-400 hover:bg-indigo-50 transition-all flex justify-center items-center bg-white shadow-sm text-sm md:text-base h-20">
+                                    ${opt}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('quiz-audio-btn').onclick = () => {
+                if (data.audioUrl) playAudio(data.audioUrl);
+                else {
+                    const synth = new Tone.Synth().toDestination();
+                    synth.triggerAttackRelease("C4", "8n");
+                }
+            };
+        }
+
+        function renderQuiz(data) {
+             contentArea.innerHTML = `
+                <div class="fade-in w-full h-full relative flex flex-col justify-center items-center">
+                    <div class="w-full max-w-2xl flex flex-col gap-6">
+                        <div class="w-full bg-indigo-600 text-white p-5 rounded-2xl shadow-lg text-center">
+                             <h3 class="text-xs opacity-80 uppercase tracking-wide mb-1">Quiz</h3>
+                             <h2 class="text-lg md:text-xl font-medium leading-snug">${data.question}</h2>
+                        </div>
+                        
+                        ${data.context ? `
+                            <div class="text-center p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                <p class="text-2xl font-bold text-gray-800 mb-2">${data.context}</p>
+                                <p class="text-gray-500 italic">${data.meaning}</p>
+                            </div>
+                        ` : ''}
+
+                        <div class="grid grid-cols-2 gap-3 w-full">
+                            ${data.options.map((opt, idx) => `
+                                <button type="button" onclick="handleQuizAnswer(${idx}, ${data.answer}, this)" class="quiz-opt-btn w-full p-4 rounded-xl border-2 border-gray-200 text-gray-700 font-bold hover:border-indigo-400 hover:bg-indigo-50 transition-all text-center flex justify-center items-center group bg-white shadow-sm text-sm md:text-base">
+                                    <span>${opt}</span>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderWritingChallenge(data) {
+            const state = getExerciseState(currentIndex);
+            let showAudio = (state.attempts >= 2 || state.passed);
+            let showAnswer = (state.attempts >= 3 || state.passed);
+
+            contentArea.innerHTML = `
+                <div class="fade-in w-full h-full flex flex-col items-center justify-center gap-6 text-center max-w-2xl mx-auto">
+                    <h3 class="text-sm md:text-base font-bold text-indigo-600 uppercase tracking-wider flex-shrink-0">Écrivez en coréen</h3>
+                    
+                    <div class="bg-white w-full p-8 rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center gap-6 flex-shrink-0">
+                         <p class="text-xl font-medium text-gray-700">${data.promptFr}</p>
+                         
+                         <input type="text" id="write-input" 
+                                class="korean-input w-full p-4 text-center text-xl border-2 border-gray-200 rounded-xl transition-all" 
+                                placeholder="Tapez ici..." 
+                                ${showAnswer ? 'disabled' : ''}
+                                value="${showAnswer ? data.target : ''}">
+
+                         <div class="flex gap-4">
+                             <button type="button" id="hint-audio-btn" class="${showAudio ? '' : 'hidden'} w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100">
+                                <i class="ph ph-speaker-high text-2xl"></i>
+                             </button>
+                             <button type="button" id="check-btn" class="${showAnswer ? 'hidden' : ''} bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 shadow-md transition-all">
+                                Vérifier
+                             </button>
+                         </div>
+                    </div>
+                    
+                    <div id="feedback-area" class="h-8 font-bold text-sm"></div>
+                </div>
+            `;
+
+            const input = document.getElementById('write-input');
+            const checkBtn = document.getElementById('check-btn');
+            const feedback = document.getElementById('feedback-area');
+            const audioBtn = document.getElementById('hint-audio-btn');
+
+            if (showAnswer) {
+                feedback.innerHTML = `<span class="text-gray-500">La réponse était : ${data.target}</span>`;
+            } else if (state.passed) {
+                feedback.innerHTML = `<span class="text-green-600">Correct !</span>`;
+            }
+
+            audioBtn.onclick = () => playAudio(data.hintAudio);
+
+            checkBtn.onclick = () => {
+                const val = input.value.trim().replace(/\.$/, ""); 
+                const targetClean = data.target.replace(/\.$/, "");
+                
+                state.attempts++;
+
+                if (val === targetClean) {
+                    state.passed = true;
+                    if(correctSound) correctSound.triggerAttackRelease('E5', '0.1s');
+                    feedback.innerHTML = `<span class="text-green-600">Correct !</span>`;
+                    input.classList.add('border-green-500', 'text-green-700');
+                    checkBtn.classList.add('hidden');
+                    updateProgress();
+                } else {
+                    if(correctSound) correctSound.triggerAttackRelease('G2', '0.2s');
+                    
+                    if (state.attempts >= 3) {
+                        feedback.innerHTML = `<span class="text-red-500">Terminé. Passons à la suite.</span>`;
+                        input.value = data.target;
+                        input.disabled = true;
+                        checkBtn.classList.add('hidden');
+                        updateProgress();
+                    } else {
+                        feedback.innerHTML = `<span class="text-red-500">Incorrect (${state.attempts}/3)</span>`;
+                        render();
+                    }
+                }
+            };
+        }
+
+        function renderOutro(data) {
+             navArea.classList.add('hidden');
+             contentArea.innerHTML = `
+                <div class="fade-in flex flex-col items-center justify-center gap-6 h-full text-center max-w-2xl mx-auto">
+                    <h2 class="text-2xl md:text-3xl font-bold text-gray-800">Terminé !</h2>
+                    <div class="w-full bg-indigo-600 text-white p-6 rounded-2xl shadow-lg text-base md:text-lg leading-relaxed">
+                        ${data.text}
+                    </div>
+                </div>
+            `;
+            if (completionSynth) setTimeout(() => completionSynth.triggerAttackRelease(["C5", "E5", "G5", "C6"], "4n"), 500);
+            window.parent.postMessage({ type: 'lesson_complete' }, '*');
+        }
+
+        // --- Shared Logic ---
+
+        window.handleQuizAnswer = (selectedIdx, correctIdx, btnElement) => {
+            const allBtns = document.querySelectorAll('.quiz-opt-btn');
+            if (selectedIdx === correctIdx) {
+                btnElement.classList.remove('border-gray-200', 'hover:border-indigo-400', 'hover:bg-indigo-50');
+                btnElement.classList.add('border-green-500', 'bg-green-50', 'text-green-700');
+                allBtns.forEach(b => b.disabled = true);
+                if(correctSound) correctSound.triggerAttackRelease('E5', '0.1s');
+                nextBtn.disabled = false;
+            } else {
+                btnElement.classList.remove('border-gray-200');
+                btnElement.classList.add('border-red-500', 'bg-red-50', 'text-red-700');
+                if(correctSound) correctSound.triggerAttackRelease('G2', '0.2s');
+            }
+        };
+
+        async function processSpeech(audioBase64, referenceText, pageIndex) {
+            const state = getExerciseState(pageIndex);
+            state.attempts++;
+
+            try {
+                const res = await fetch(CLOVA_API_FUNCTION_URL, {
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ audioBase64: audioBase64, languageCode: "Kor", referenceText: referenceText })
+                });
+
+                if (!res.ok) throw new Error("API Error");
+                const result = await res.json();
+                const score = result.assessment?.pronunciation_score || 0;
+                const recognizedText = result.text || ""; // Capture recognized text
+                
+                state.lastScore = score;
+                state.lastText = recognizedText; // Store in state
+
+                if (score >= 80) {
+                    if(correctSound) correctSound.triggerAttackRelease('C5', '0.2s');
+                    state.passed = true;
+                } else {
+                     if(correctSound) correctSound.triggerAttackRelease('G2', '0.2s');
+                }
+            } catch (e) {
+                console.error("Speech Eval Failed:", e);
+                state.lastScore = 0; 
+                state.lastText = "Erreur";
+                if(correctSound) correctSound.triggerAttackRelease('G2', '0.2s');
+            }
+            
+            render(); 
+            updateProgress();
+        }
+
+        // --- Render Engine ---
+        function render() {
+            stopAudio();
+            updateProgress();
+            const data = lessonData[currentIndex];
+            contentArea.innerHTML = ''; 
+
+            switch(data.type) {
+                case 'cover': renderCover(data); break;
+                case 'learn': renderLearn(data); break;
+                case 'repeat': renderRepeat(data); break;
+                case 'listening_quiz': renderListeningQuiz(data); break;
+                case 'speaking_challenge': renderSpeakingChallenge(data); break;
+                case 'quiz': renderQuiz(data); break;
+                case 'writing_challenge': renderWritingChallenge(data); break;
+                case 'outro': renderOutro(data); break;
+                default: console.error("Unknown type");
+            }
+        }
+
+        async function nextPage() {
+            await initAudio(); 
+            playPageSound();
+            if (currentIndex < lessonData.length - 1) {
+                currentIndex++;
+                render();
+            }
+        }
+
+        function prevPage() {
+            playPageSound();
+            if (currentIndex > 0) {
+                currentIndex--;
+                render();
+            }
+        }
+
+        nextBtn.addEventListener('click', nextPage);
+        prevBtn.addEventListener('click', prevPage);
+
+        render();
+    </script>
+</body>
+</html>
