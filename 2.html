@@ -287,7 +287,6 @@
 
             let canProceed = true;
             if (['quiz', 'listening_quiz'].includes(currentData.type)) {
-                // For quizzes, proceed only if passed
                 canProceed = state.passed; 
             } else if (currentData.type === 'speaking_challenge' || currentData.type === 'writing_challenge') {
                 if (state.passed || state.attempts >= 3) canProceed = true;
@@ -405,7 +404,7 @@
                 if (state.passed || state.attempts >= 2) {
                     displayKorean = data.target; 
                 } else {
-                    displayKorean = data.promptKr; 
+                    displayKorean = data.promptKr || "___"; 
                 }
                 if (state.attempts >= 1 || state.passed) {
                     showAudioBtn = true;
@@ -413,13 +412,15 @@
             }
 
             contentArea.innerHTML = `
-                <div class="fade-in w-full h-full flex flex-col items-center justify-center gap-6 text-center max-w-2xl mx-auto">
-                    <h3 class="text-sm md:text-base font-bold text-indigo-600 uppercase tracking-wider shrink-0">
-                        ${mode === 'repeat' ? 'Répétez après moi' : 'Parlez en coréen'}
-                    </h3>
+                <div class="fade-in w-full h-full flex flex-col items-center max-w-2xl mx-auto">
+                    <div class="flex-1 w-full flex flex-col justify-end items-center pb-4 min-h-0">
+                        <h3 class="text-sm md:text-base font-bold text-indigo-600 uppercase tracking-wider text-center shrink-0">
+                            ${mode === 'repeat' ? 'Répétez après moi' : 'Parlez en coréen'}
+                        </h3>
+                    </div>
                     
-                    <div class="bg-white w-full p-8 md:p-10 rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center gap-6 shrink-0">
-                        <div class="space-y-2">
+                    <div class="bg-white w-full p-8 md:p-10 rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center gap-6 shrink-0 z-10">
+                        <div class="space-y-2 text-center">
                              ${mode === 'challenge' ? `<p class="text-gray-500 text-lg mb-2">${data.promptFr}</p>` : ''}
                              <h2 class="text-3xl md:text-4xl font-bold text-gray-800 leading-snug">${displayKorean}</h2>
                              ${mode === 'repeat' ? `<p class="text-base md:text-lg text-gray-500">${data.subtitle2}</p>` : ''}
@@ -436,8 +437,10 @@
                         </div>
                     </div>
 
-                    <div id="feedback-area" class="h-16 flex items-center justify-center w-full shrink-0">
-                        <p class="text-gray-400 text-sm">Appuyez sur le micro pour parler</p>
+                    <div class="flex-1 w-full flex flex-col justify-start items-center pt-4 min-h-0">
+                        <div id="feedback-area" class="h-16 flex items-center justify-center w-full text-center">
+                            <p class="text-gray-400 text-sm">Appuyez sur le micro pour parler</p>
+                        </div>
                     </div>
                 </div>
             `;
@@ -446,7 +449,6 @@
             const recordBtn = document.getElementById('record-btn');
             const feedbackArea = document.getElementById('feedback-area');
 
-            // Feedback Logic & Restore State
             if (state.passed) {
                 feedbackArea.innerHTML = `
                     <div class="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm w-full">
@@ -486,7 +488,6 @@
                         mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
                         
                         mediaRecorder.onstop = async () => {
-                            // Fix for volume issue: Stop tracks immediately
                             stream.getTracks().forEach(track => track.stop());
                             if (recordingTimeout) clearTimeout(recordingTimeout);
                             
@@ -541,7 +542,7 @@
             const state = getExerciseState(currentIndex);
 
             contentArea.innerHTML = `
-                <div class="fade-in w-full h-full relative flex flex-col justify-center items-center">
+                <div class="fade-in w-full h-full flex flex-col justify-center items-center">
                     <div class="w-full max-w-2xl flex flex-col gap-8 items-center">
                         <div class="w-full bg-indigo-600 text-white p-5 rounded-2xl shadow-lg text-center">
                              <h2 class="text-lg md:text-xl font-medium leading-snug">${data.question}</h2>
@@ -588,7 +589,7 @@
              const state = getExerciseState(currentIndex);
 
              contentArea.innerHTML = `
-                <div class="fade-in w-full h-full relative flex flex-col justify-center items-center">
+                <div class="fade-in w-full h-full flex flex-col justify-center items-center">
                     <div class="w-full max-w-2xl flex flex-col gap-6">
                         <div class="w-full bg-indigo-600 text-white p-5 rounded-2xl shadow-lg text-center">
                              <h3 class="text-xs opacity-80 uppercase tracking-wide mb-1">Quiz</h3>
@@ -748,21 +749,31 @@
             state.attempts++;
 
             try {
+                const payload = { 
+                    audioBase64: audioBase64, 
+                    languageCode: "Kor", 
+                    referenceText: referenceText 
+                };
+
                 const res = await fetch(CLOVA_API_FUNCTION_URL, {
                     method: 'POST', 
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ audioBase64: audioBase64, languageCode: "Kor", referenceText: referenceText })
+                    body: JSON.stringify(payload)
                 });
 
-                if (!res.ok) throw new Error("API Error");
+                if (!res.ok) throw new Error("API Error: " + res.status); 
                 const result = await res.json();
-                const score = result.assessment?.pronunciation_score || 0;
+                
                 const recognizedText = result.text || ""; 
+                const score = Number(result.assessment?.pronunciation_score || 0);
                 
                 state.lastScore = score;
                 state.lastText = recognizedText; 
 
-                if (score >= 80) {
+                const cleanRef = referenceText.replace(/[\s.,?!]/g, "");
+                const cleanRec = recognizedText.replace(/[\s.,?!]/g, "");
+
+                if (score >= 80 && cleanRec === cleanRef) {
                     if(correctSound) correctSound.triggerAttackRelease('C5', '0.2s');
                     state.passed = true;
                 } else {
