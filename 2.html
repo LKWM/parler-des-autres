@@ -176,7 +176,7 @@
             {
                 type: 'listening_quiz',
                 question: "Choisissez la bonne traduction.",
-                audioUrl: "https://res.cloudinary.com/de76i94ia/video/upload/v1768634440/%E1%84%80%E1%85%A1%E1%84%89%E1%85%AE_yxknd3.mp3", 
+                audioUrl: null, // Fallback TTS
                 word: "가수",
                 options: ["Médecin", "Chanteur", "Policier", "Infirmier"],
                 answer: 1 
@@ -231,7 +231,7 @@
             },
             {
                 type: 'outro',
-                text: "leçon 3 에서 더 다양한 표현을 말하고 써 보세요!",
+                text: "Dans la leçon 3, entraînez-vous avec des mots et des expressions plus variés !",
                 audio: null 
             }
         ];
@@ -404,7 +404,7 @@
                 if (state.passed || state.attempts >= 2) {
                     displayKorean = data.target; 
                 } else {
-                    displayKorean = data.promptKr || "___"; 
+                    displayKorean = data.promptKr; 
                 }
                 if (state.attempts >= 1 || state.passed) {
                     showAudioBtn = true;
@@ -449,6 +449,7 @@
             const recordBtn = document.getElementById('record-btn');
             const feedbackArea = document.getElementById('feedback-area');
 
+            // Feedback Logic
             if (state.passed) {
                 feedbackArea.innerHTML = `
                     <div class="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm w-full">
@@ -632,7 +633,9 @@
         function renderWritingChallenge(data) {
             const state = getExerciseState(currentIndex);
             let showAudio = (state.attempts >= 2 || state.passed);
-            let showAnswer = (state.attempts >= 3 || state.passed);
+            
+            // Check if failed max attempts (3 times wrong)
+            const isFailed = (state.attempts >= 3 && !state.passed);
 
             contentArea.innerHTML = `
                 <div class="fade-in w-full h-full flex flex-col items-center justify-center gap-6 text-center max-w-2xl mx-auto">
@@ -641,19 +644,24 @@
                     <div class="bg-white w-full p-8 rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center gap-6 flex-shrink-0">
                          <p class="text-xl font-medium text-gray-700">${data.promptFr}</p>
                          
-                         <input type="text" id="write-input" 
+                         ${isFailed ? 
+                            `<h2 class="text-2xl md:text-3xl font-bold text-indigo-600">${data.target}</h2>` :
+                            `<input type="text" id="write-input" 
                                 class="korean-input w-full p-4 text-center text-xl border-2 border-gray-200 rounded-xl transition-all" 
                                 placeholder="Tapez ici..." 
-                                ${showAnswer ? 'disabled' : ''}
-                                value="${showAnswer ? data.target : ''}">
+                                ${state.passed ? 'disabled' : ''}
+                                value="${state.passed ? data.target : ''}">`
+                         }
 
                          <div class="flex gap-4">
                              <button type="button" id="hint-audio-btn" class="${showAudio ? '' : 'hidden'} w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100">
                                 <i class="ph ph-speaker-high text-2xl"></i>
                              </button>
-                             <button type="button" id="check-btn" class="${showAnswer ? 'hidden' : ''} bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 shadow-md transition-all">
-                                Vérifier
-                             </button>
+                             ${!isFailed && !state.passed ? 
+                                `<button type="button" id="check-btn" class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 shadow-md transition-all">
+                                    Vérifier
+                                </button>` : ''
+                             }
                          </div>
                     </div>
                     
@@ -666,43 +674,43 @@
             const feedback = document.getElementById('feedback-area');
             const audioBtn = document.getElementById('hint-audio-btn');
 
-            if (showAnswer) {
-                feedback.innerHTML = `<span class="text-gray-500">La réponse était : ${data.target}</span>`;
+            if (isFailed) {
+                 feedback.innerHTML = `<span class="text-red-500">Terminé. Passons à la suite.</span>`;
             } else if (state.passed) {
                 feedback.innerHTML = `<span class="text-green-600">Correct !</span>`;
-                input.classList.add('border-green-500', 'text-green-700');
+                if(input) input.classList.add('border-green-500', 'text-green-700');
             }
 
-            audioBtn.onclick = () => playAudio(data.hintAudio);
+            if(audioBtn) audioBtn.onclick = () => playAudio(data.hintAudio);
 
-            checkBtn.onclick = () => {
-                const val = input.value.trim().replace(/\.$/, ""); 
-                const targetClean = data.target.replace(/\.$/, "");
-                
-                state.attempts++;
-
-                if (val === targetClean) {
-                    state.passed = true;
-                    if(correctSound) correctSound.triggerAttackRelease('E5', '0.1s');
-                    feedback.innerHTML = `<span class="text-green-600">Correct !</span>`;
-                    input.classList.add('border-green-500', 'text-green-700');
-                    checkBtn.classList.add('hidden');
-                    updateProgress();
-                } else {
-                    if(correctSound) correctSound.triggerAttackRelease('G2', '0.2s');
+            if(checkBtn) {
+                checkBtn.onclick = () => {
+                    if (!input) return;
+                    const val = input.value.trim().replace(/\.$/, ""); 
+                    const targetClean = data.target.replace(/\.$/, "");
                     
-                    if (state.attempts >= 3) {
-                        feedback.innerHTML = `<span class="text-red-500">Terminé. Passons à la suite.</span>`;
-                        input.value = data.target;
-                        input.disabled = true;
-                        checkBtn.classList.add('hidden');
+                    state.attempts++;
+
+                    if (val === targetClean) {
+                        state.passed = true;
+                        if(correctSound) correctSound.triggerAttackRelease('E5', '0.1s');
+                        feedback.innerHTML = `<span class="text-green-600">Correct !</span>`;
+                        input.classList.add('border-green-500', 'text-green-700');
+                        checkBtn.remove(); // Remove button on success
                         updateProgress();
                     } else {
-                        feedback.innerHTML = `<span class="text-red-500">Incorrect (${state.attempts}/3)</span>`;
-                        render();
+                        if(correctSound) correctSound.triggerAttackRelease('G2', '0.2s');
+                        
+                        if (state.attempts >= 3) {
+                            render(); // Re-render to switch to text view
+                            updateProgress();
+                        } else {
+                            feedback.innerHTML = `<span class="text-red-500">Incorrect (${state.attempts}/3)</span>`;
+                            render();
+                        }
                     }
-                }
-            };
+                };
+            }
         }
 
         function renderOutro(data) {
