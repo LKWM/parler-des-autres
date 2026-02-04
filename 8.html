@@ -109,6 +109,7 @@
             },
             {
                 type: 'repeat',
+                instruction: "Répétez après moi.",
                 korean: "이 사람은 누구예요?",
                 subtitle1: "Cette personne qui être",
                 subtitle2: "Qui est-ce?",
@@ -116,6 +117,7 @@
             },
             {
                 type: 'repeat',
+                instruction: "Répétez après moi.",
                 korean: "이 사람은 우리 아빠예요.",
                 subtitle1: "Cette personne notre père être",
                 subtitle2: "C’est mon père.",
@@ -123,6 +125,7 @@
             },
             {
                 type: 'repeat',
+                instruction: "Répétez encore une fois.",
                 korean: "이 사람은 우리 아빠예요.",
                 subtitle1: "Cette personne notre père être",
                 subtitle2: "C’est mon père.",
@@ -130,6 +133,7 @@
             },
             {
                 type: 'repeat',
+                instruction: "Répétez après moi.",
                 korean: "이 사람은 제 선생님이에요.",
                 subtitle1: "Cette personne mon professeur être",
                 subtitle2: "C’est mon professeur.",
@@ -137,6 +141,7 @@
             },
             {
                 type: 'repeat',
+                instruction: "Répétez encore une fois.",
                 korean: "이 사람은 제 선생님이에요.",
                 subtitle1: "Cette personne mon professeur être",
                 subtitle2: "C’est mon professeur.",
@@ -145,7 +150,7 @@
             {
                 type: 'listening_quiz',
                 question: "Choisissez la bonne traduction.",
-                audioUrl: "https://res.cloudinary.com/de76i94ia/video/upload/v1770111247/%E1%84%89%E1%85%A5%E1%86%AB%E1%84%89%E1%85%A2%E1%86%BC%E1%84%82%E1%85%B5%E1%86%B7_e6rx81.mp3",
+                audioUrl: "https://res.cloudinary.com/de76i94ia/video/upload/v1770111247/%E1%84%99%E1%85%A5%E1%86%AB%E1%84%89%E1%85%A2%E1%86%BC%E1%84%82%E1%85%B5%E1%86%B7_e6rx81.mp3",
                 word: "선생님",
                 options: ["Professeur", "Étudiant", "Personne", "Médecin"],
                 answer: 0 // Professeur
@@ -167,6 +172,7 @@
             },
             {
                 type: 'repeat',
+                instruction: "Répétez après moi.",
                 korean: "이 사람은 제 학생이에요.",
                 subtitle1: "Cette personne mon étudiant être",
                 subtitle2: "C’est mon étudiant.",
@@ -174,6 +180,7 @@
             },
             {
                 type: 'repeat',
+                instruction: "Répétez encore une fois.",
                 korean: "이 사람은 제 학생이에요.",
                 subtitle1: "Cette personne mon étudiant être",
                 subtitle2: "C’est mon étudiant.",
@@ -240,11 +247,13 @@
             await Tone.start();
             correctSound = new Tone.Synth().toDestination();
             completionSynth = new Tone.PolySynth().toDestination();
+            // Reverted to C2 to match other lessons
             pageTurnSynth = new Tone.MembraneSynth({ envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination();
             hasInteracted = true;
         }
 
         function playPageSound() {
+            // Reverted to C2
             if (pageTurnSynth && hasInteracted) pageTurnSynth.triggerAttackRelease("C2", "32n");
         }
 
@@ -337,17 +346,6 @@
             visitedPages.add(currentIndex);
         }
 
-        function renderIntro(data) {
-            contentArea.innerHTML = `
-                <div class="fade-in w-full h-full flex flex-col items-center justify-center max-w-3xl mx-auto">
-                     <div class="w-full bg-white border border-gray-100 rounded-2xl shadow-sm p-6 md:p-10 text-lg md:text-2xl text-gray-700 leading-relaxed text-center">
-                        ${data.text}
-                     </div>
-                </div>
-            `;
-            playAutoAudioIfNeeded(data.audio);
-        }
-
         function renderLearn(data) {
             let sentenceHtml = data.parts ? data.parts.map(part => `<span class="${part.color} sentence-part text-2xl md:text-4xl font-bold">${part.text === " " ? "&nbsp;" : part.text}</span>`).join('') : "";
             
@@ -406,11 +404,14 @@
                 }
             }
 
+            // Text Fix: Use data.instruction if available, otherwise fallback based on mode
+            const instructionText = data.instruction || (mode === 'repeat' ? 'Répétez après moi' : 'Parlez en coréen');
+
             contentArea.innerHTML = `
                 <div class="fade-in w-full h-full flex flex-col items-center max-w-2xl mx-auto">
                     <div class="flex-1 w-full flex flex-col justify-end items-center pb-4 min-h-0">
                         <h3 class="text-sm md:text-base font-bold text-indigo-600 uppercase tracking-wider text-center shrink-0">
-                            ${mode === 'repeat' ? 'Répétez après moi' : 'Parlez en coréen'}
+                            ${instructionText}
                         </h3>
                     </div>
                     
