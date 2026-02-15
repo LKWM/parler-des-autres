@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>L'activité (1) Plus d’exemples</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js for Audio Synth -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans', 'Noto Sans KR', sans-serif;
+            overflow: hidden;
+            background-color: white;
+            touch-action: manipulation;
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+            padding: 0;
+        }
+
+        #game-container {
+            position: relative;
+            background: white;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (min-width: 768px) {
+            #game-container {
+                border-radius: 0;
+                margin: 0;
+                box-shadow: none;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .sentence-part {
+            display: inline-block;
+            white-space: pre;
+        }
+
+        .btn-hover:active {
+            transform: scale(0.95);
+        }
+        
+        .card-list {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 transparent;
+        }
+    </style>
+</head>
+<body class="bg-white">
+
+    <div id="game-container">
+        <!-- Progress Bar -->
+        <div class="absolute top-0 left-0 w-full h-1.5 bg-gray-100 z-50">
+            <div id="progress-bar" class="h-full bg-indigo-500 transition-all duration-300" style="width: 0%"></div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div id="content-area" class="flex-1 w-full relative overflow-hidden flex flex-col items-center justify-center p-2">
+            <!-- Dynamic Content -->
+        </div>
+
+        <!-- Navigation Bar -->
+        <div id="nav-area" class="w-full h-20 px-6 md:px-12 flex justify-between items-center bg-white border-t border-gray-100 z-40 shrink-0">
+            <button type="button" id="prev-btn" class="btn-hover bg-gray-100 text-gray-600 w-12 h-12 rounded-full flex items-center justify-center hover:bg-gray-200 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+                <i class="ph ph-arrow-left text-xl font-bold"></i>
+            </button>
+            
+            <button type="button" id="next-btn" class="btn-hover bg-indigo-600 text-white px-6 py-3 rounded-full font-bold shadow-lg flex items-center gap-2 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                Continuer <i class="ph ph-arrow-right font-bold"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const BASE_44_ORIGIN = "https://coreeno.base44.app"; 
+        const CLOVA_API_FUNCTION_URL = BASE_44_ORIGIN + '/api/functions/naverClovaSpeech';
+
+        // --- Data & State Management ---
+        const exerciseStates = {}; 
+        
+        // Image Assets
+        const IMG_A = "https://res.cloudinary.com/de76i94ia/image/upload/v1770889485/image_1_xmsh1n.png";
+        const IMG_B = "https://res.cloudinary.com/de76i94ia/image/upload/v1770889489/image_2_q0vjes.png";
+
+        const lessonData = [
+            {
+                type: 'cover',
+                chapter: 'L’activité (1)',
+                title: 'Plus d’exemples',
+                btnText: 'Commencer'
+            },
+            {
+                type: 'image_repeat',
+                instruction: "Présentez la personne dans l’image en coréen.",
+                image: IMG_A,
+                korean: "이 사람은 지연 씨예요.",
+                subtitle1: "Cette personne est Jiyeon.",
+                subtitle2: "C’est Jiyeon.",
+                refAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1770706151/L10S1_cngmtb.mp3"
+            },
+            {
+                type: 'image_repeat',
+                instruction: "Présentez la personne dans l’image en coréen.",
+                image: IMG_A,
+                korean: "지연 씨는 의사예요.",
+                subtitle1: "Jiyeon médecin être.",
+                subtitle2: "Elle est médecin.",
+                refAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1770706153/L10S2_evhxoh.mp3"
+            },
+            {
+                type: 'image_repeat',
+                instruction: "Présentez la personne dans l’image en coréen.",
+                image: IMG_A,
+                korean: "지연 씨는 미국 사람이에요.",
+                subtitle1: "Jiyeon état-unis personne être",
+                subtitle2: "Elle est américaine.",
+                refAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1770706154/L10S3_svpoud.mp3"
+            },
+            {
+                type: 'image_repeat',
+                instruction: "Présentez la personne dans l’image en coréen.",
+                image: IMG_B,
+                korean: "이 사람은 시몬이에요.",
+                subtitle1: "Cette personne Simon être.",
+                subtitle2: "C’est Simon.",
+                refAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1770706157/L10S4_afm6ep.mp3"
+            },
+            {
+                type: 'image_repeat',
+                instruction: "Présentez la personne dans l’image en coréen.",
+                image: IMG_B,
+                korean: "시몬은 제 오빠예요.",
+                subtitle1: "Simon mon frère être",
+                subtitle2: "Il est mon frère.",
+                refAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1770706159/L10S5_ytjgot.mp3"
+            },
+            {
+                type: 'image_repeat',
+                instruction: "Présentez la personne dans l’image en coréen.",
+                image: IMG_B,
+                korean: "오빠는 회사원이에요.",
+                subtitle1: "frère employé être",
+                subtitle2: "Il est employé.",
+                refAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1770706161/L10S6_ybqms1.mp3"
+            },
+            {
+                type: 'multi_step_challenge',
+                instruction: "Présentez vous-même la personne en coréen.",
+                image: IMG_A,
+                steps: [
+                    { prompt: "이 ___ 지연 ___.", subtitle: "C’est Jiyeon.", target: "이 사람은 지연 씨예요.", audio: "https://res.cloudinary.com/de76i94ia/video/upload/v1770706151/L10S1_cngmtb.mp3" },
+                    { prompt: "지연 씨_ ____.", subtitle: "Jiyeon est médecin.", target: "지연 씨는 의사예요.", audio: "https://res.cloudinary.com/de76i94ia/video/upload/v1770706153/L10S2_evhxoh.mp3" },
+                    { prompt: "지연 씨는 __ _____.", subtitle: "Jiyeon est américaine.", target: "지연 씨는 미국 사람이에요.", audio: "https://res.cloudinary.com/de76i94ia/video/upload/v1770706154/L10S3_svpoud.mp3" }
+                ]
+            },
+            {
+                type: 'multi_step_challenge',
+                instruction: "Présentez vous-même la personne en coréen.",
+                image: IMG_B,
+                steps: [
+                    { prompt: "_ ___ 시몬 ___.", subtitle: "C’est Simon.", target: "이 사람은 시몬이에요.", audio: "https://res.cloudinary.com/de76i94ia/video/upload/v1770706157/L10S4_afm6ep.mp3" },
+                    { prompt: "시몬_ _ 오빠__.", subtitle: "Simon est mon frère.", target: "시몬은 제 오빠예요.", audio: "https://res.cloudinary.com/de76i94ia/video/upload/v1770706159/L10S5_ytjgot.mp3" },
+                    { prompt: "제 오빠_ ______.", subtitle: "Mon frère est employé.", target: "제 오빠는 회사원이에요.", audio: "https://res.cloudinary.com/de76i94ia/video/upload/v1770706161/L10S6_ybqms1.mp3" }
+                ]
+            },
+            {
+                type: 'outro',
+                text: "Bon travail ! Exercez-vous à répondre à diverses questions dans l'activité (2) !", 
+                audio: null
+            }
+        ];
+
+        // --- State ---
+        let currentIndex = 0;
+        let audioPlayer = new Audio();
+        let isRecording = false;
+        let mediaRecorder;
+        let audioChunks = [];
+        let correctSound = null;
+        let completionSynth = null;
+        let pageTurnSynth = null;
+        let hasInteracted = false;
+        const visitedPages = new Set();
+        let autoPlayTimeout = null;
+        let recordingTimeout = null; 
+
+        // --- Tone.js ---
+        async function initAudio() {
+            if (hasInteracted) return;
+            await Tone.start();
+            correctSound = new Tone.Synth().toDestination();
+            completionSynth = new Tone.PolySynth().toDestination();
+            pageTurnSynth = new Tone.MembraneSynth({ envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination();
+            hasInteracted = true;
+        }
+
+        function playPageSound() {
+            if (pageTurnSynth && hasInteracted) pageTurnSynth.triggerAttackRelease("C2", "32n");
+        }
+
+        // --- Helper: Similarity (Levenshtein based) ---
+        function calculateSimilarity(s1, s2) {
+            let longer = s1;
+            let shorter = s2;
+            if (s1.length < s2.length) {
+                longer = s2;
+                shorter = s1;
+            }
+            const longerLength = longer.length;
+            if (longerLength === 0) return 1.0;
+            return (longerLength - editDistance(longer, shorter)) / parseFloat(longerLength);
+        }
+
+        function editDistance(s1, s2) {
+            s1 = s1.toLowerCase();
+            s2 = s2.toLowerCase();
+            const costs = [];
+            for (let i = 0; i <= s1.length; i++) {
+                let lastValue = i;
+                for (let j = 0; j <= s2.length; j++) {
+                    if (i === 0) costs[j] = j;
+                    else {
+                        if (j > 0) {
+                            let newValue = costs[j - 1];
+                            if (s1.charAt(i - 1) !== s2.charAt(j - 1))
+                                newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+                            costs[j - 1] = lastValue;
+                            lastValue = newValue;
+                        }
+                    }
+                }
+                if (i > 0) costs[s2.length] = lastValue;
+            }
+            return costs[s2.length];
+        }
+
+        function cleanString(str) {
+            return str.replace(/[\s.,?!]/g, "");
+        }
+
+
+        // --- DOM ---
+        const contentArea = document.getElementById('content-area');
+        const progressBar = document.getElementById('progress-bar');
+        const nextBtn = document.getElementById('next-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const navArea = document.getElementById('nav-area');
+
+        // --- Core Functions ---
+        function updateProgress() {
+            const progress = ((currentIndex) / (lessonData.length - 1)) * 100;
+            progressBar.style.width = `${progress}%`;
+            
+            if (currentIndex === 0) prevBtn.classList.add('invisible');
+            else {
+                prevBtn.classList.remove('invisible');
+                prevBtn.disabled = false;
+            }
+            
+            const currentData = lessonData[currentIndex];
+            const state = getExerciseState(currentIndex);
+
+            let canProceed = true;
+            
+            if (currentData.type === 'image_repeat') {
+                if (state.passed || state.attempts >= 2) canProceed = true;
+                else canProceed = false;
+            } else if (currentData.type === 'multi_step_challenge') {
+                // Must complete all steps (isFinished means last step passed or failed)
+                if (state.isFinished) canProceed = true;
+                else canProceed = false;
+            }
+
+            nextBtn.disabled = !canProceed;
+
+            if (currentIndex === lessonData.length - 1) {
+                nextBtn.innerHTML = `Terminer <i class="ph ph-check text-xl"></i>`;
+            } else {
+                nextBtn.innerHTML = `Continuer <i class="ph ph-arrow-right font-bold"></i>`;
+                navArea.classList.remove('hidden');
+            }
+        }
+
+        function stopAudio() {
+            if(audioPlayer) {
+                audioPlayer.pause();
+                audioPlayer.currentTime = 0;
+            }
+            if(autoPlayTimeout) clearTimeout(autoPlayTimeout);
+        }
+
+        function playAudio(url, onEndCallback, delay = 0) {
+            stopAudio();
+            if (!url) return;
+            autoPlayTimeout = setTimeout(() => {
+                audioPlayer.src = url;
+                audioPlayer.play().catch(e => console.log("Audio blocked:", e));
+                audioPlayer.onended = () => { if (onEndCallback) onEndCallback(); };
+            }, delay);
+        }
+
+        function playAutoAudioIfNeeded(url) {
+            if (!visitedPages.has(currentIndex)) {
+                visitedPages.add(currentIndex);
+                playAudio(url, null, 1000); 
+            }
+        }
+
+        function getExerciseState(index) {
+            if (!exerciseStates[index]) {
+                exerciseStates[index] = { 
+                    attempts: 0, 
+                    passed: false, 
+                    lastText: "", 
+                    currentStep: 0,
+                    stepAttempts: 0,
+                    stepPassed: false,
+                    isFinished: false 
+                };
+            }
+            return exerciseStates[index];
+        }
+
+        // --- Render Functions ---
+
+        function renderCover(data) {
+            contentArea.innerHTML = `
+                <div class="fade-in w-full h-full flex flex-col items-center justify-center gap-10 text-center max-w-3xl mx-auto">
+                    <div class="bg-indigo-100 p-8 rounded-full shadow-md shrink-0">
+                        <i class="ph ph-images text-6xl text-indigo-600"></i>
+                    </div>
+                    <div class="space-y-6 shrink-0">
+                        <h1 class="text-lg font-bold text-indigo-600 uppercase tracking-widest">${data.chapter}</h1>
+                        <h2 class="text-2xl font-bold text-gray-800 leading-tight">${data.title}</h2>
+                    </div>
+                </div>
+            `;
+            visitedPages.add(currentIndex);
+        }
+
+        function renderImageRepeat(data) {
+            const state = getExerciseState(currentIndex);
+
+            contentArea.innerHTML = `
+                <div class="fade-in w-full h-full flex flex-col items-center max-w-2xl mx-auto py-2">
+                    <div class="w-full flex justify-center pb-2 shrink-0">
+                        <h3 class="text-xs text-indigo-600 uppercase tracking-wider text-center font-bold">
+                            ${data.instruction}
+                        </h3>
+                    </div>
+                    
+                    <div class="bg-white w-full p-2 md:p-4 rounded-3xl shadow-lg border border-gray-100 relative flex flex-col items-center gap-2 shrink-1 min-h-0 z-10 flex-1 overflow-hidden">
+                        
+                        <div class="flex-1 w-full flex items-center justify-center min-h-0 overflow-hidden rounded-xl">
+                            <img src="${data.image}" class="w-full h-full object-contain" alt="Scenario Image">
+                        </div>
+                        
+                        <div class="w-full flex flex-col items-center shrink-0 pt-2 bg-white z-20">
+                            <div class="space-y-1 text-center mb-2">
+                                <h2 class="text-lg md:text-xl font-bold text-gray-800 leading-snug">${data.korean}</h2>
+                                <p class="text-sm text-gray-400 italic">${data.subtitle1}</p>
+                                <p class="text-base text-indigo-900 font-bold">${data.subtitle2}</p>
+                            </div>
+                            
+                            <div class="flex justify-center gap-4">
+                                <button type="button" id="listen-btn" class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 flex items-center justify-center transition-all shadow-sm">
+                                    <i class="ph ph-speaker-high text-xl"></i>
+                                </button>
+                                
+                                <button type="button" id="record-btn" class="w-12 h-12 rounded-full bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition-all ring-2 ring-transparent shadow-sm">
+                                    <i class="ph ph-microphone text-xl"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="w-full pt-2 shrink-0">
+                        <div id="feedback-area" class="h-12 flex flex-col items-center justify-center w-full text-center">
+                            <p class="text-gray-400 text-xs">Appuyez sur le micro pour parler</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const listenBtn = document.getElementById('listen-btn');
+            const recordBtn = document.getElementById('record-btn');
+            const feedbackArea = document.getElementById('feedback-area');
+
+            let feedbackContent = '';
+            
+            if (state.passed) {
+                feedbackContent = `<span class="text-green-600 font-bold text-sm">Très bien !</span>`;
+                recordBtn.disabled = true;
+                recordBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else if (state.attempts >= 2) {
+                 feedbackContent = `<span class="text-gray-500 text-sm font-bold">Passons à la suite.</span>`;
+                 recordBtn.disabled = true;
+                 recordBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else if (state.attempts > 0) {
+                 feedbackContent = `<span class="text-orange-500 text-sm">Essayez encore.</span>`;
+            } else {
+                 feedbackContent = `<span class="text-gray-400 text-xs">Appuyez sur le micro pour parler</span>`;
+            }
+            
+            feedbackArea.innerHTML = feedbackContent;
+
+            listenBtn.onclick = () => {
+                playAudio(data.refAudio);
+            };
+
+            recordBtn.onclick = async () => {
+                if (state.attempts >= 2 || state.passed) return; 
+                startRecording(data.korean, 'repeat');
+            };
+        }
+
+        function renderMultiStepChallenge(data) {
+            const state = getExerciseState(currentIndex);
+
+            contentArea.innerHTML = `
+                <div class="fade-in w-full h-full flex flex-col items-center justify-center max-w-2xl mx-auto py-4 px-2">
+                    
+                    <!-- Header -->
+                    <div class="w-full flex flex-col items-center shrink-0 mb-4 z-20">
+                        <h3 class="text-xs text-indigo-600 uppercase tracking-wider text-center font-bold mb-3">
+                            ${data.instruction}
+                        </h3>
+                        <img src="${data.image}" class="max-h-[20vh] w-auto rounded-xl shadow-sm object-contain" alt="Scenario">
+                    </div>
+
+                    <!-- Cards List -->
+                    <div class="w-full max-w-lg space-y-3 shrink-0 card-list overflow-y-auto">
+                        ${data.steps.map((step, index) => {
+                            const isCompleted = index < state.currentStep;
+                            const isActive = index === state.currentStep;
+                            const isLocked = index > state.currentStep;
+                            
+                            let opacityClass = isLocked ? "opacity-40 grayscale" : "opacity-100";
+                            
+                            // Style Logic
+                            let borderClass = "border-gray-200 bg-white";
+                            if (isCompleted) {
+                                borderClass = "border-green-300 bg-green-50";
+                            } else if (isActive) {
+                                borderClass = "border-indigo-400 ring-2 ring-indigo-100";
+                                // If stepPassed is true (waiting to advance), make it green immediately
+                                if (state.stepPassed) borderClass = "border-green-300 bg-green-50";
+                            }
+                            
+                            let displayKorean = step.prompt;
+                            let showAudio = false;
+
+                            if (isActive) {
+                                if (state.stepAttempts >= 1) showAudio = true;
+                                if (state.stepAttempts >= 2) displayKorean = step.target;
+                                if (state.stepPassed) {
+                                    displayKorean = step.target; // Show target on success/max fail
+                                    showAudio = true; 
+                                }
+                            } else if (isCompleted) {
+                                displayKorean = step.target;
+                                showAudio = true;
+                            }
+
+                            return `
+                                <div class="w-full p-4 rounded-xl border ${borderClass} shadow-sm flex flex-col gap-2 ${opacityClass} transition-all duration-300">
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex-1">
+                                            <h4 class="text-lg font-bold text-gray-800 leading-snug">${displayKorean}</h4>
+                                            <p class="text-sm text-gray-500 font-bold">${step.subtitle}</p>
+                                        </div>
+                                        
+                                        <div class="flex items-center gap-2 shrink-0 ${isLocked ? 'pointer-events-none' : ''}">
+                                            <button onclick="playAudio('${step.audio}')" class="${showAudio ? '' : 'hidden'} w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors shadow-sm">
+                                                <i class="ph ph-speaker-high text-lg"></i>
+                                            </button>
+                                            
+                                            ${isActive && !state.stepPassed ? `
+                                                <button id="record-btn" onclick="startRecording('${step.target}', 'multi_step')" class="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 transition-colors shadow-sm ring-2 ring-transparent">
+                                                    <i class="ph ph-microphone text-lg"></i>
+                                                </button>
+                                            ` : ''}
+                                            
+                                            ${isCompleted || state.stepPassed ? '<i class="ph ph-check-circle text-green-500 text-3xl ml-1"></i>' : ''}
+                                        </div>
+                                    </div>
+                                    
+                                    ${isActive && state.stepAttempts > 0 && !state.stepPassed ? `
+                                        <div class="text-xs text-center text-orange-500 font-medium mt-1">
+                                             Essayez encore (${state.stepAttempts}/3)
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+            // Removed bottom feedback area and manual next button
+        }
+
+        // --- Shared Recording Logic ---
+        async function startRecording(referenceText, mode) {
+             if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                    
+                    mediaRecorder.onstop = async () => {
+                        stream.getTracks().forEach(track => track.stop());
+                        if (recordingTimeout) clearTimeout(recordingTimeout);
+                        
+                        try {
+                            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                            const reader = new FileReader();
+                            reader.readAsDataURL(audioBlob);
+                            reader.onloadend = async () => {
+                                const base64 = reader.result.split(',')[1];
+                                await processSpeech(base64, referenceText, currentIndex, mode);
+                            };
+                        } catch (e) {
+                            console.error("Error processing audio", e);
+                        }
+                    };
+                    
+                    mediaRecorder.start();
+                    isRecording = true;
+                    
+                    const recordBtn = document.getElementById('record-btn');
+                    const feedbackArea = document.getElementById('feedback-area'); // Only in repeat mode
+
+                    if (recordBtn) {
+                         recordBtn.classList.remove('bg-red-50', 'text-red-500');
+                         recordBtn.classList.add('bg-red-500', 'text-white', 'animate-pulse');
+                         const iconSize = mode === 'multi_step' ? 'text-lg' : 'text-xl';
+                         recordBtn.innerHTML = `<i class="ph ph-stop ${iconSize}"></i>`;
+                    }
+
+                    if (feedbackArea && mode === 'repeat') {
+                         feedbackArea.innerHTML = '<p class="text-indigo-600 animate-pulse text-xs">Enregistrement...</p>';
+                    }
+
+                    recordingTimeout = setTimeout(() => {
+                        if (isRecording && mediaRecorder.state === 'recording') {
+                            mediaRecorder.stop();
+                            isRecording = false;
+                            
+                            if (document.contains(recordBtn)) {
+                                recordBtn.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
+                                recordBtn.classList.add('bg-red-50', 'text-red-500');
+                                const iconSize = mode === 'multi_step' ? 'text-lg' : 'text-xl';
+                                recordBtn.innerHTML = `<i class="ph ph-microphone ${iconSize}"></i>`;
+                            }
+                            if (feedbackArea && mode === 'repeat') {
+                                feedbackArea.innerHTML = '<p class="text-gray-400 text-xs">Analyse...</p>';
+                            }
+                        }
+                    }, 12000);
+
+                } catch (err) {
+                    console.error(err);
+                }
+            } else {
+                if (recordingTimeout) clearTimeout(recordingTimeout);
+                mediaRecorder.stop();
+                isRecording = false;
+                
+                const recordBtn = document.getElementById('record-btn');
+                const feedbackArea = document.getElementById('feedback-area');
+
+                if (recordBtn) {
+                     recordBtn.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
+                     recordBtn.classList.add('bg-red-50', 'text-red-500');
+                     const iconSize = mode === 'multi_step' ? 'text-lg' : 'text-xl';
+                     recordBtn.innerHTML = `<i class="ph ph-microphone ${iconSize}"></i>`;
+                }
+                if (feedbackArea && mode === 'repeat') {
+                    feedbackArea.innerHTML = '<p class="text-gray-400 text-xs">Analyse...</p>';
+                }
+            }
+        }
+
+
+        async function processSpeech(audioBase64, referenceText, pageIndex, mode) {
+            const state = getExerciseState(pageIndex);
+            
+            if (mode === 'repeat') state.attempts++;
+            else state.stepAttempts++; 
+
+            try {
+                // Retry wrapper for 500 errors
+                const makeRequest = async (retries = 1) => {
+                    try {
+                        const payload = { 
+                            audioBase64: audioBase64, 
+                            languageCode: "Kor", 
+                            referenceText: referenceText ? referenceText.trim() : ""
+                        };
+
+                        const res = await fetch(CLOVA_API_FUNCTION_URL, {
+                            method: 'POST', 
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (!res.ok) {
+                            if (res.status === 500 && retries > 0) {
+                                await new Promise(r => setTimeout(r, 1000));
+                                return makeRequest(retries - 1);
+                            }
+                            throw new Error("API Error: " + res.status);
+                        }
+                        return await res.json();
+                    } catch (e) {
+                        throw e;
+                    }
+                };
+
+                const result = await makeRequest();
+                
+                const recognizedText = result.text || ""; 
+                state.lastText = recognizedText; 
+
+                const cleanRef = cleanString(referenceText);
+                const cleanRec = cleanString(recognizedText);
+                const similarityScore = calculateSimilarity(cleanRec, cleanRef);
+                const passed = similarityScore >= 0.8;
+
+                if (mode === 'multi_step') {
+                    // Multi-step Logic: Pass OR Max Attempts -> Move Immediately
+                    if (passed || state.stepAttempts >= 3) {
+                        if(correctSound) correctSound.triggerAttackRelease('C5', '0.2s'); // Success sound for both
+                        
+                        // Immediate transition (No setTimeout)
+                        state.stepPassed = false;
+                        state.stepAttempts = 0;
+                        state.lastText = "";
+                        state.currentStep++;
+                        
+                        if (state.currentStep >= lessonData[currentIndex].steps.length) {
+                            state.isFinished = true; 
+                            updateProgress(); 
+                        }
+                    } else {
+                        // Fail
+                        if(correctSound) correctSound.triggerAttackRelease('G2', '0.2s');
+                    }
+                } else {
+                    // Repeat Mode Logic
+                    if (passed) {
+                        if(correctSound) correctSound.triggerAttackRelease('C5', '0.2s');
+                        state.passed = true;
+                    } else {
+                        if(correctSound) correctSound.triggerAttackRelease('G2', '0.2s');
+                    }
+                }
+
+            } catch (e) {
+                console.error("Speech Eval Failed:", e);
+                 if(correctSound) correctSound.triggerAttackRelease('G2', '0.2s');
+                 state.lastText = "Erreur de connexion";
+                 
+                 // Handle error case for multi-step to avoid getting stuck
+                 if (mode === 'multi_step' && state.stepAttempts >= 3) {
+                     if(correctSound) correctSound.triggerAttackRelease('C5', '0.2s');
+                     state.stepAttempts = 0;
+                     state.currentStep++;
+                     state.lastText = "";
+                     if (state.currentStep >= lessonData[currentIndex].steps.length) {
+                         state.isFinished = true;
+                         updateProgress();
+                     }
+                 }
+            }
+            
+            render(); 
+            updateProgress();
+        }
+
+        function renderOutro(data) {
+             navArea.classList.add('hidden');
+             contentArea.innerHTML = `
+                <div class="fade-in w-full h-full flex flex-col items-center justify-center gap-6 text-center max-w-2xl mx-auto">
+                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">Terminé !</h2>
+                    <div class="w-full bg-indigo-600 text-white p-6 rounded-2xl shadow-lg text-base leading-relaxed">
+                        ${data.text}
+                    </div>
+                </div>
+            `;
+            if (completionSynth) setTimeout(() => completionSynth.triggerAttackRelease(["C5", "E5", "G5", "C6"], "4n"), 500);
+            window.parent.postMessage({ type: 'lesson_complete' }, '*');
+        }
+
+        // --- Render Engine ---
+        function render() {
+            stopAudio();
+            updateProgress();
+            const data = lessonData[currentIndex];
+            contentArea.innerHTML = ''; 
+
+            switch(data.type) {
+                case 'cover': renderCover(data); break;
+                case 'image_repeat': renderImageRepeat(data); break;
+                case 'multi_step_challenge': renderMultiStepChallenge(data); break;
+                case 'outro': renderOutro(data); break;
+                default: console.error("Unknown type");
+            }
+        }
+
+        async function nextPage() {
+            await initAudio(); 
+            playPageSound();
+
+            const currentData = lessonData[currentIndex];
+            const state = getExerciseState(currentIndex);
+
+            // Handle multi-step transition on button click
+            if (currentData.type === 'multi_step_challenge') {
+                // If not finished, do not advance page
+                if (!state.isFinished) {
+                    // We shouldn't be here via main button if not finished, 
+                    // unless updateProgress logic is wrong.
+                    // But if finished, proceed to next page.
+                }
+            }
+
+            if (currentIndex < lessonData.length - 1) {
+                currentIndex++;
+                render();
+            }
+        }
+
+        function prevPage() {
+            playPageSound();
+            if (currentIndex > 0) {
+                currentIndex--;
+                render();
+            }
+        }
+
+        nextBtn.addEventListener('click', nextPage);
+        prevBtn.addEventListener('click', prevPage);
+
+        render();
+    </script>
+</body>
+</html>
