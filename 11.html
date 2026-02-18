@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>L'activité (2) Répondre aux questions</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js for Audio Synth -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans', 'Noto Sans KR', sans-serif;
+            overflow: hidden;
+            background-color: white;
+            touch-action: manipulation;
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+            padding: 0;
+        }
+
+        #game-container {
+            position: relative;
+            background: white;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .btn-hover:active {
+            transform: scale(0.95);
+        }
+
+        /* Custom Scrollbar for Hint Area */
+        .hint-area {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 transparent;
+        }
+    </style>
+</head>
+<body class="bg-white">
+
+    <div id="game-container">
+        <!-- Progress Bar -->
+        <div class="absolute top-0 left-0 w-full h-1.5 bg-gray-100 z-50">
+            <div id="progress-bar" class="h-full bg-indigo-500 transition-all duration-300" style="width: 0%"></div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div id="content-area" class="flex-1 w-full relative overflow-hidden flex flex-col items-center justify-center p-4">
+            <!-- Dynamic Content -->
+        </div>
+
+        <!-- Navigation Bar -->
+        <div id="nav-area" class="w-full h-20 px-6 md:px-12 flex justify-between items-center bg-white border-t border-gray-100 z-40 shrink-0">
+            <button type="button" id="prev-btn" class="btn-hover bg-gray-100 text-gray-600 w-12 h-12 rounded-full flex items-center justify-center hover:bg-gray-200 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+                <i class="ph ph-arrow-left text-xl font-bold"></i>
+            </button>
+            
+            <button type="button" id="next-btn" class="btn-hover bg-indigo-600 text-white px-6 py-3 rounded-full font-bold shadow-lg flex items-center gap-2 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                Continuer <i class="ph ph-arrow-right font-bold"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const BASE_44_ORIGIN = "https://coreeno.base44.app"; 
+        const CLOVA_API_FUNCTION_URL = BASE_44_ORIGIN + '/api/functions/naverClovaSpeech';
+
+        // --- Data & State Management ---
+        const exerciseStates = {}; 
+        
+        // Data Structure
+        const lessonData = [
+            {
+                type: 'cover',
+                chapter: 'L’activité (2)',
+                title: 'Répondre aux questions',
+                btnText: 'Commencer'
+            },
+            {
+                type: 'question',
+                image: "https://res.cloudinary.com/de76i94ia/image/upload/v1771154814/image_A_wc0w65.png",
+                qAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1771154897/L11Q1_apjx58.mp3",
+                qText: "이 사람은 누구예요?",
+                qTrans: "Qui est-ce?",
+                hint1: "이 사람은 __이에요.",
+                hint2: "경찰",
+                hint3: "이 사람은 경찰이에요.",
+                aAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1771155424/L11A1_ihdiie.mp3"
+            },
+            {
+                type: 'question',
+                image: "https://res.cloudinary.com/de76i94ia/image/upload/v1771154814/image_A_wc0w65.png",
+                qAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1771154894/L11Q2_louwrv.mp3",
+                qText: "경찰은 어느 나라 사람이에요?",
+                qTrans: "Le policier est de quel pays ?",
+                hint1: "경찰은 ___ 사람이에요.",
+                hint2: "프랑스",
+                hint3: "경찰은 프랑스 사람이에요.",
+                aAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1771155493/L11A2_a6xwgb.mp3"
+            },
+            {
+                type: 'question',
+                image: "https://res.cloudinary.com/de76i94ia/image/upload/v1771155277/image_B_uyllgz.png",
+                qAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1771154902/L11Q3_efxeij.mp3",
+                qText: "이게 뭐예요?",
+                qTrans: "Qu’est-ce que c’est ?",
+                hint1: "이건 ____.",
+                hint2: "책",
+                hint3: "이건 책이에요.",
+                aAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1771155551/L11A3_ukkohk.mp3"
+            },
+            {
+                type: 'question',
+                image: "https://res.cloudinary.com/de76i94ia/image/upload/v1771155280/image_C_evqty7.png",
+                qAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1771154902/L11Q3_efxeij.mp3", // Reused
+                qText: "이게 뭐예요?",
+                qTrans: "Qu’est-ce que c’est ?",
+                hint1: "이건 __이에요.",
+                hint2: "연필",
+                hint3: "이건 연필이에요.",
+                aAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1771155554/L11A4_orqlf4.mp3"
+            },
+            {
+                type: 'question',
+                image: "https://res.cloudinary.com/de76i94ia/image/upload/v1771155283/image_D_tmcaka.png",
+                qAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1771154902/L11Q3_efxeij.mp3", // Reused
+                qText: "이게 뭐예요?",
+                qTrans: "Qu’est-ce que c’est ?",
+                hint1: "이건 ____.",
+                hint2: "옷",
+                hint3: "이건 옷이에요.",
+                aAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1771155586/L11A5_imdcj8.mp3"
+            },
+            {
+                type: 'question',
+                image: "https://res.cloudinary.com/de76i94ia/image/upload/v1771155140/image_E_jvm34l.png",
+                qAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1771154897/L11Q1_apjx58.mp3", // Reused
+                qText: "이 사람은 누구예요?",
+                qTrans: "Qui est-ce?",
+                hint1: "이 사람은 ___이에요.",
+                hint2: "선생님",
+                hint3: "이 사람은 선생님이에요.",
+                aAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1771155589/L11A6_eivmg4.mp3"
+            },
+            {
+                type: 'question',
+                image: "https://res.cloudinary.com/de76i94ia/image/upload/v1771155262/image_F_jkmxx3.png",
+                qAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1771154902/L11Q3_efxeij.mp3", // Reused
+                qText: "이게 뭐예요?",
+                qTrans: "Qu’est-ce que c’est ?",
+                hint1: "이건 제 __예요.",
+                hint2: "모자",
+                hint3: "이건 제 모자예요.",
+                aAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1771155600/L11A7_b4eaor.mp3"
+            },
+            {
+                type: 'question',
+                image: "https://res.cloudinary.com/de76i94ia/image/upload/v1771155263/image_G_xgotih.png",
+                qAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1771154902/L11Q3_efxeij.mp3", // Reused
+                qText: "이게 뭐예요?",
+                qTrans: "Qu’est-ce que c’est ?",
+                hint1: "__ _ __이에요.",
+                hint2: "가방",
+                hint3: "이건 제 가방이에요.",
+                aAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1771155595/L11A8_f45nwu.mp3"
+            },
+            {
+                type: 'outro',
+                text: "Bon travail ! Essayez de présenter quelqu'un vous-même dans l'activité 3.",
+                audio: null
+            }
+        ];
+
+        // --- State ---
+        let currentIndex = 0;
+        let audioPlayer = new Audio();
+        let isRecording = false;
+        let isAudioPlaying = false; 
+        let mediaRecorder;
+        let audioChunks = [];
+        let correctSound = null;
+        let completionSynth = null;
+        let pageTurnSynth = null;
+        let hasInteracted = false;
+        let autoPlayTimeout = null;
+        let recordingTimeout = null; 
+
+        // --- Tone.js ---
+        async function initAudio() {
+            if (hasInteracted) return;
+            await Tone.start();
+            correctSound = new Tone.Synth().toDestination();
+            completionSynth = new Tone.PolySynth().toDestination();
+            pageTurnSynth = new Tone.MembraneSynth({ envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination();
+            hasInteracted = true;
+        }
+
+        function playPageSound() {
+            if (pageTurnSynth && hasInteracted) pageTurnSynth.triggerAttackRelease("C2", "32n");
+        }
+
+        // --- Helper: Similarity ---
+        function calculateSimilarity(s1, s2) {
+            const clean1 = s1.replace(/\s/g, '');
+            const clean2 = s2.replace(/\s/g, '');
+            let longer = clean1, shorter = clean2;
+            if (clean1.length < clean2.length) { longer = clean2; shorter = clean1; }
+            const longerLength = longer.length;
+            if (longerLength === 0) return 1.0;
+            return (longerLength - editDistance(longer, shorter)) / parseFloat(longerLength);
+        }
+
+        function editDistance(s1, s2) {
+            const costs = [];
+            for (let i = 0; i <= s1.length; i++) {
+                let lastValue = i;
+                for (let j = 0; j <= s2.length; j++) {
+                    if (i === 0) costs[j] = j;
+                    else {
+                        if (j > 0) {
+                            let newValue = costs[j - 1];
+                            if (s1.charAt(i - 1) !== s2.charAt(j - 1)) newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+                            costs[j - 1] = lastValue;
+                            lastValue = newValue;
+                        }
+                    }
+                }
+                if (i > 0) costs[s2.length] = lastValue;
+            }
+            return costs[s2.length];
+        }
+
+        // --- DOM ---
+        const contentArea = document.getElementById('content-area');
+        const progressBar = document.getElementById('progress-bar');
+        const nextBtn = document.getElementById('next-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const navArea = document.getElementById('nav-area');
+
+        // --- Core Functions ---
+        function updateProgress() {
+            const progress = ((currentIndex) / (lessonData.length - 1)) * 100;
+            progressBar.style.width = `${progress}%`;
+            
+            if (currentIndex === 0) prevBtn.classList.add('invisible');
+            else {
+                prevBtn.classList.remove('invisible');
+                prevBtn.disabled = false;
+            }
+            
+            const currentData = lessonData[currentIndex];
+            const state = getExerciseState(currentIndex);
+
+            let canProceed = true;
+            if (currentData.type === 'question') {
+                // Modified: Max attempts 3
+                if (state.passed || state.attempts >= 3) canProceed = true;
+                else canProceed = false;
+            }
+
+            nextBtn.disabled = !canProceed;
+
+            if (currentIndex === lessonData.length - 1) {
+                nextBtn.innerHTML = `Terminer <i class="ph ph-check text-xl"></i>`;
+            } else {
+                nextBtn.innerHTML = `Continuer <i class="ph ph-arrow-right font-bold"></i>`;
+                navArea.classList.remove('hidden');
+            }
+        }
+
+        function updateRecordButtonState() {
+             const recordBtn = document.getElementById('record-btn');
+             const state = getExerciseState(currentIndex);
+             if (!recordBtn) return;
+             
+             if (isAudioPlaying) {
+                 recordBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                 recordBtn.disabled = true;
+                 return;
+             }
+
+             if (state.passed || state.attempts >= 3) {
+                 recordBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                 recordBtn.disabled = true;
+             } else {
+                 recordBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                 recordBtn.disabled = false;
+             }
+        }
+
+        function stopAudio() {
+            if(audioPlayer) {
+                audioPlayer.pause();
+                audioPlayer.currentTime = 0;
+            }
+            if(autoPlayTimeout) clearTimeout(autoPlayTimeout);
+            isAudioPlaying = false;
+            updateRecordButtonState();
+        }
+
+        function playAudio(url, onEndCallback, delay = 0) {
+            stopAudio();
+            if (!url) return;
+            
+            isAudioPlaying = true;
+            updateRecordButtonState();
+
+            autoPlayTimeout = setTimeout(() => {
+                audioPlayer.src = url;
+                audioPlayer.play()
+                .then(() => {
+                    isAudioPlaying = true;
+                    updateRecordButtonState();
+                })
+                .catch(e => {
+                    console.log("Audio blocked:", e);
+                    isAudioPlaying = false;
+                    updateRecordButtonState();
+                });
+                
+                audioPlayer.onended = () => { 
+                    isAudioPlaying = false;
+                    updateRecordButtonState();
+                    if (onEndCallback) onEndCallback(); 
+                };
+            }, delay);
+        }
+
+        function playQuestionAudioAuto(url) {
+             if (!url) return;
+             playAudio(url, null, 1000);
+        }
+
+        function getExerciseState(index) {
+            if (!exerciseStates[index]) {
+                exerciseStates[index] = { 
+                    attempts: 0, 
+                    passed: false
+                };
+            }
+            return exerciseStates[index];
+        }
+
+        // --- Render Functions ---
+
+        function renderCover(data) {
+            contentArea.innerHTML = `
+                <div class="fade-in w-full h-full flex flex-col items-center justify-center gap-10 text-center max-w-3xl mx-auto">
+                    <div class="bg-indigo-100 p-8 rounded-full shadow-md shrink-0">
+                        <i class="ph ph-question text-6xl text-indigo-600"></i>
+                    </div>
+                    <div class="space-y-6 shrink-0">
+                        <h1 class="text-lg font-bold text-indigo-600 uppercase tracking-widest">${data.chapter}</h1>
+                        <h2 class="text-2xl font-bold text-gray-800 leading-tight">${data.title}</h2>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderQuestion(data) {
+            const state = getExerciseState(currentIndex);
+            
+            // Logic for Display based on attempts (Max 3)
+            // 0: Image + Audio Btn + Mic
+            // 1: + Question Text + Hint 1
+            // 2: + Question Trans + Hint 2
+            // 3 (Max): + Answer Audio + Hint 3
+
+            const showQText = state.attempts >= 1 || state.passed;
+            const showHint1 = state.attempts === 1 && !state.passed; // Exclusive to attempt 1
+            
+            const showQTrans = state.attempts >= 2 || state.passed;
+            const showHint2 = state.attempts === 2 && !state.passed; // Exclusive to attempt 2
+
+            const showAnswerAudio = state.attempts >= 3 || state.passed;
+            const showHint3 = (state.attempts >= 3 || state.passed);
+
+            const showQAudioBtn = state.attempts >= 1 || state.passed;
+
+            if (state.attempts === 0 && !state.passed) {
+                playQuestionAudioAuto(data.qAudio);
+            }
+
+            const qAudioBtn = showQAudioBtn ? 
+                `<button onclick="playAudio('${data.qAudio}')" class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors shadow-sm shrink-0"><i class="ph ph-speaker-high text-lg"></i></button>` 
+                : '';
+
+            contentArea.innerHTML = `
+                <div class="fade-in w-full h-full flex flex-col items-center max-w-2xl mx-auto py-2">
+                    <div class="w-full flex justify-center pb-2 shrink-0">
+                        <h3 class="text-xs text-indigo-600 uppercase tracking-wider text-center font-bold">
+                            Regardez l'image et répondez à la question.
+                        </h3>
+                    </div>
+                    
+                    <div class="bg-white w-full p-4 rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center gap-4 shrink-1 min-h-0 z-10 flex-1 overflow-hidden">
+                        
+                        <div class="flex-1 w-full flex items-center justify-center min-h-0 overflow-hidden rounded-xl">
+                            <img src="${data.image}" class="max-h-full max-w-full object-contain" alt="Question Image">
+                        </div>
+                        
+                        <div class="w-full flex flex-col items-center shrink-0 pt-2 space-y-4 bg-white z-20 hint-area overflow-y-auto" style="max-height: 50%;">
+                            
+                            ${showQText ? `
+                            <div class="w-full flex flex-col items-center gap-1 mb-2">
+                                <div class="flex items-center justify-center gap-2 w-full px-2">
+                                    ${qAudioBtn}
+                                    <h2 class="text-xl font-bold text-gray-800 text-center leading-snug">${data.qText}</h2>
+                                </div>
+                                ${showQTrans ? `<p class="text-sm text-gray-500 text-center px-4">${data.qTrans}</p>` : ''}
+                            </div>` : ''}
+
+                            <div class="text-center w-full space-y-2">
+                                ${showHint1 ? `<p class="text-lg text-indigo-600 font-medium bg-indigo-50 px-4 py-2 rounded-lg inline-block">${data.hint1}</p>` : ''}
+                                ${showHint2 ? `<p class="text-lg text-orange-600 font-medium bg-orange-50 px-4 py-2 rounded-lg inline-block">Mot clé : ${data.hint2}</p>` : ''}
+                                ${showHint3 ? `
+                                    <div class="flex items-center justify-center gap-2">
+                                        ${data.aAudio ? `
+                                            <button onclick="playAudio('${data.aAudio}')" class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition-colors">
+                                                <i class="ph ph-speaker-high text-lg"></i>
+                                            </button>
+                                        ` : ''}
+                                        <p class="text-lg text-green-600 font-bold bg-green-50 px-4 py-2 rounded-lg inline-block">${data.hint3}</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                                
+                            <div id="feedback-msg" class="h-6 w-full text-center text-sm font-bold"></div>
+
+                        </div>
+
+                        <div class="w-full flex justify-center pb-2 pt-2">
+                            <button id="record-btn" class="w-14 h-14 rounded-full bg-red-500 text-white flex items-center justify-center transition-all ring-4 ring-transparent shadow-md hover:scale-105">
+                                <i class="ph ph-microphone text-2xl"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const recordBtn = document.getElementById('record-btn');
+            const feedbackMsg = document.getElementById('feedback-msg');
+            
+            // Check State (Max 3 attempts)
+            if (state.passed || state.attempts >= 3) {
+                 recordBtn.classList.remove('bg-red-500');
+                 recordBtn.classList.add('bg-green-500', 'cursor-not-allowed', 'opacity-50');
+                 recordBtn.innerHTML = `<i class="ph ph-check text-2xl"></i>`;
+                 recordBtn.disabled = true;
+                 
+                 if (state.passed) {
+                    feedbackMsg.innerHTML = `<span class="text-green-600">Très bien. Passons à la question suivante.</span>`;
+                 } else {
+                    feedbackMsg.innerHTML = `<span class="text-green-600">Passons à la question suivante.</span>`;
+                 }
+                 
+            } else if (state.attempts > 0) {
+                 feedbackMsg.innerHTML = `<span class="text-orange-500">Vous y êtes presque. Essayez encore une fois.</span>`;
+            }
+            
+            updateRecordButtonState();
+
+            recordBtn.onclick = async () => {
+                if (isAudioPlaying) return;
+                if (state.passed || state.attempts >= 3) return;
+                startRecording(data.hint3);
+            };
+        }
+
+        // --- Recording Logic ---
+        async function startRecording(targetText) {
+             const recordBtn = document.getElementById('record-btn');
+             const feedbackMsg = document.getElementById('feedback-msg');
+             
+             if (isAudioPlaying) return;
+
+             if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                    
+                    mediaRecorder.onstop = async () => {
+                        isRecording = false;
+                        stream.getTracks().forEach(track => track.stop());
+                        if (recordingTimeout) clearTimeout(recordingTimeout);
+                        
+                        try {
+                            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                            const reader = new FileReader();
+                            reader.readAsDataURL(audioBlob);
+                            reader.onloadend = async () => {
+                                const base64 = reader.result.split(',')[1];
+                                await processSpeech(base64, targetText);
+                            };
+                        } catch (e) {
+                            console.error("Error processing audio", e);
+                        }
+                        
+                         if (recordBtn) {
+                             const state = getExerciseState(currentIndex);
+                             if (!state.passed && state.attempts < 3) {
+                                 recordBtn.classList.remove('bg-red-500', 'text-white', 'border-red-500', 'animate-pulse');
+                                 recordBtn.classList.add('bg-white', 'text-indigo-600', 'border-gray-100'); 
+                                 recordBtn.classList.remove('bg-indigo-600', 'animate-pulse');
+                                 recordBtn.classList.add('bg-red-500');
+                                 recordBtn.innerHTML = `<i class="ph ph-microphone text-2xl"></i>`;
+                             }
+                        }
+                    };
+                    
+                    mediaRecorder.start();
+                    isRecording = true;
+                    
+                    if (recordBtn) {
+                         recordBtn.classList.remove('bg-red-500');
+                         recordBtn.classList.add('bg-indigo-600', 'animate-pulse');
+                         recordBtn.innerHTML = `<i class="ph ph-stop text-2xl"></i>`;
+                    }
+                    if (feedbackMsg) feedbackMsg.innerText = "Enregistrement...";
+
+                    recordingTimeout = setTimeout(() => {
+                        if (isRecording && mediaRecorder.state === 'recording') {
+                            mediaRecorder.stop();
+                        }
+                    }, 12000);
+
+                } catch (err) {
+                    console.error(err);
+                    isRecording = false; 
+                    if (feedbackMsg) feedbackMsg.innerHTML = '<span class="text-red-500">Erreur micro</span>';
+                }
+            } else {
+                if (recordingTimeout) clearTimeout(recordingTimeout);
+                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop();
+                } else {
+                    isRecording = false;
+                    if (recordBtn) {
+                        recordBtn.classList.remove('bg-indigo-600', 'animate-pulse');
+                        recordBtn.classList.add('bg-red-500');
+                        recordBtn.innerHTML = `<i class="ph ph-microphone text-2xl"></i>`;
+                    }
+                }
+            }
+        }
+
+        async function processSpeech(audioBase64, targetText) {
+            const state = getExerciseState(currentIndex);
+            
+            try {
+                const payload = { 
+                    audioBase64: audioBase64, 
+                    languageCode: "Kor", 
+                    referenceText: targetText 
+                };
+
+                const res = await fetch(CLOVA_API_FUNCTION_URL, {
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) throw new Error("API Error: " + res.status); 
+                const result = await res.json();
+                
+                const recognizedText = result.text || ""; 
+
+                const cleanTarget = targetText.replace(/[\s.,?!]/g, "");
+                const cleanRec = recognizedText.replace(/[\s.,?!]/g, "");
+                
+                let similarity = 0;
+                if (cleanTarget.length > 0) {
+                    const dist = editDistance(cleanRec, cleanTarget);
+                    similarity = (Math.max(cleanTarget.length, cleanRec.length) - dist) / Math.max(cleanTarget.length, cleanRec.length);
+                }
+
+                if (similarity >= 0.7) {
+                    state.passed = true;
+                    if(correctSound) correctSound.triggerAttackRelease('C5', '0.2s');
+                } else {
+                    state.attempts++;
+                    // Modified: Max attempts 3
+                    if (state.attempts >= 3) {
+                         if(correctSound) correctSound.triggerAttackRelease('C5', '0.2s');
+                    } else {
+                        if(correctSound) correctSound.triggerAttackRelease('G2', '0.2s');
+                    }
+                }
+
+            } catch (e) {
+                console.error("Speech Eval Failed:", e);
+                state.attempts++;
+                if (state.attempts >= 3) {
+                     if(correctSound) correctSound.triggerAttackRelease('C5', '0.2s');
+                } else {
+                     if(correctSound) correctSound.triggerAttackRelease('G2', '0.2s');
+                }
+            }
+            
+            render(); 
+            updateProgress();
+        }
+
+        function editDistance(s1, s2) {
+            s1 = s1.toLowerCase();
+            s2 = s2.toLowerCase();
+            const costs = [];
+            for (let i = 0; i <= s1.length; i++) {
+                let lastValue = i;
+                for (let j = 0; j <= s2.length; j++) {
+                    if (i === 0) costs[j] = j;
+                    else {
+                        if (j > 0) {
+                            let newValue = costs[j - 1];
+                            if (s1.charAt(i - 1) !== s2.charAt(j - 1))
+                                newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+                            costs[j - 1] = lastValue;
+                            lastValue = newValue;
+                        }
+                    }
+                }
+                if (i > 0) costs[s2.length] = lastValue;
+            }
+            return costs[s2.length];
+        }
+
+        function renderOutro(data) {
+             navArea.classList.add('hidden');
+             contentArea.innerHTML = `
+                <div class="fade-in w-full h-full flex flex-col items-center justify-center gap-6 text-center max-w-2xl mx-auto">
+                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">Terminé !</h2>
+                    <div class="w-full bg-indigo-600 text-white p-6 rounded-2xl shadow-lg text-base leading-relaxed">
+                        ${data.text}
+                    </div>
+                </div>
+            `;
+            if (completionSynth) setTimeout(() => completionSynth.triggerAttackRelease(["C5", "E5", "G5", "C6"], "4n"), 500);
+            window.parent.postMessage({ type: 'lesson_complete' }, '*');
+        }
+
+        function render() {
+            updateProgress();
+            const data = lessonData[currentIndex];
+            contentArea.innerHTML = ''; 
+
+            switch(data.type) {
+                case 'cover': renderCover(data); break;
+                case 'question': renderQuestion(data); break;
+                case 'outro': renderOutro(data); break;
+                default: console.error("Unknown type");
+            }
+        }
+
+        async function nextPage() {
+            await initAudio(); 
+            playPageSound();
+            stopAudio(); 
+            if (currentIndex < lessonData.length - 1) {
+                currentIndex++;
+                render();
+            }
+        }
+
+        function prevPage() {
+            playPageSound();
+            stopAudio();
+            if (currentIndex > 0) {
+                currentIndex--;
+                render();
+            }
+        }
+
+        nextBtn.addEventListener('click', nextPage);
+        prevBtn.addEventListener('click', prevPage);
+
+        render();
+    </script>
+</body>
+</html>
