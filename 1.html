@@ -499,7 +499,7 @@
             if (state.passed) {
                 feedbackArea.innerHTML = `
                     <div class="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm w-full">
-                        <span class="font-bold block">Très bien ! Score: ${state.lastScore}</span>
+                        <span class="font-bold block">Très bien ! Score: ${state.lastScore}%</span>
                         ${state.lastText ? `<span class="text-xs font-normal opacity-80">"${state.lastText}"</span>` : ''}
                     </div>`;
                 recordBtn.disabled = true;
@@ -507,7 +507,7 @@
             } else if (state.attempts >= 3) {
                 feedbackArea.innerHTML = `
                     <div class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm w-full">
-                        <span class="font-bold block">Passons à la suite. Score: ${state.lastScore}</span>
+                        <span class="font-bold block">Passons à la suite. Score: ${state.lastScore}%</span>
                         ${state.lastText ? `<span class="text-xs font-normal opacity-80">"${state.lastText}"</span>` : ''}
                     </div>`;
                 recordBtn.disabled = true;
@@ -515,7 +515,7 @@
             } else if (state.attempts > 0) {
                 feedbackArea.innerHTML = `
                     <div class="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg text-sm w-full">
-                        <span class="font-bold block">Essayez encore (${state.attempts}/3). Score: ${state.lastScore}</span>
+                        <span class="font-bold block">Essayez encore (${state.attempts}/3). Score: ${state.lastScore}%</span>
                         ${state.lastText ? `<span class="text-xs font-normal opacity-80">"${state.lastText}"</span>` : ''}
                     </div>`;
             }
@@ -611,16 +611,43 @@
                 
                 // Use 'text' from response (utterance might be in raw but text is standard)
                 const recognizedText = result.text || ""; 
-                const score = Number(result.assessment?.pronunciation_score || 0);
                 
-                state.lastScore = score;
-                state.lastText = recognizedText; 
-
-                // Strict validation: Score AND text match (ignoring spaces/punctuation)
+                // --- Updated Logic: Text Similarity ---
                 const cleanRef = referenceText.replace(/[\s.,?!]/g, "");
                 const cleanRec = recognizedText.replace(/[\s.,?!]/g, "");
 
-                if (score >= 80 && cleanRec === cleanRef) {
+                let matchScore = 0;
+                if (cleanRef.length === 0 && cleanRec.length === 0) {
+                    matchScore = 100;
+                } else {
+                    // Calcul de la distance de Levenshtein (Levenshtein Distance)
+                    const matrix = [];
+                    for (let i = 0; i <= cleanRec.length; i++) matrix[i] = [i];
+                    for (let j = 0; j <= cleanRef.length; j++) matrix[0][j] = j;
+
+                    for (let i = 1; i <= cleanRec.length; i++) {
+                        for (let j = 1; j <= cleanRef.length; j++) {
+                            if (cleanRec.charAt(i - 1) === cleanRef.charAt(j - 1)) {
+                                matrix[i][j] = matrix[i - 1][j - 1];
+                            } else {
+                                matrix[i][j] = Math.min(
+                                    matrix[i - 1][j - 1] + 1, // substitution
+                                    matrix[i][j - 1] + 1,     // insertion
+                                    matrix[i - 1][j] + 1      // deletion
+                                );
+                            }
+                        }
+                    }
+                    const distance = matrix[cleanRec.length][cleanRef.length];
+                    const maxLength = Math.max(cleanRef.length, cleanRec.length);
+                    matchScore = Math.round(((maxLength - distance) / maxLength) * 100);
+                }
+
+                state.lastScore = matchScore; // Utiliser le pourcentage de correspondance comme score
+                state.lastText = recognizedText; 
+
+                // Si la correspondance est d'au moins 80%, c'est réussi
+                if (matchScore >= 80) {
                     if(correctSound) correctSound.triggerAttackRelease('C5', '0.2s');
                     state.passed = true;
                 } else {
