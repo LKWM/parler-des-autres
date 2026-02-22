@@ -377,6 +377,7 @@
 
             contentArea.innerHTML = `
                 <div class="fade-in w-full h-full flex flex-col items-center max-w-2xl mx-auto">
+                    
                     <div class="flex-1 w-full flex flex-col justify-end items-center pb-4 min-h-0">
                         <h3 class="text-sm md:text-base font-bold text-indigo-600 uppercase tracking-wider text-center shrink-0">
                             ${mode === 'repeat' ? 'Répétez après moi' : 'Parlez en coréen'}
@@ -413,6 +414,7 @@
             const recordBtn = document.getElementById('record-btn');
             const feedbackArea = document.getElementById('feedback-area');
 
+            // Feedback Logic
             if (state.passed) {
                 feedbackArea.innerHTML = `
                     <div class="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm w-full">
@@ -506,7 +508,7 @@
             const state = getExerciseState(currentIndex);
 
             contentArea.innerHTML = `
-                <div class="fade-in w-full h-full flex flex-col justify-center items-center">
+                <div class="fade-in w-full h-full relative flex flex-col justify-center items-center">
                     <div class="w-full max-w-2xl flex flex-col gap-8 items-center">
                         <div class="w-full bg-indigo-600 text-white p-5 rounded-2xl shadow-lg text-center">
                              <h2 class="text-lg md:text-xl font-medium leading-snug">${data.question}</h2>
@@ -596,9 +598,7 @@
         function renderWritingChallenge(data) {
             const state = getExerciseState(currentIndex);
             let showAudio = (state.attempts >= 2 || state.passed);
-            
-            // Check if failed max attempts (3 times wrong)
-            const isFailed = (state.attempts >= 3 && !state.passed);
+            let showAnswer = (state.attempts >= 3 || state.passed);
 
             contentArea.innerHTML = `
                 <div class="fade-in w-full h-full flex flex-col items-center justify-center gap-6 text-center max-w-2xl mx-auto">
@@ -607,24 +607,19 @@
                     <div class="bg-white w-full p-8 rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center gap-6 flex-shrink-0">
                          <p class="text-xl font-medium text-gray-700">${data.promptFr}</p>
                          
-                         ${isFailed ? 
-                            `<h2 class="text-2xl md:text-3xl font-bold text-indigo-600">${data.target}</h2>` :
-                            `<input type="text" id="write-input" 
+                         <input type="text" id="write-input" 
                                 class="korean-input w-full p-4 text-center text-xl border-2 border-gray-200 rounded-xl transition-all" 
                                 placeholder="Tapez ici..." 
-                                ${state.passed ? 'disabled' : ''}
-                                value="${state.passed ? data.target : ''}">`
-                         }
+                                ${showAnswer ? 'disabled' : ''}
+                                value="${showAnswer ? data.target : ''}">
 
                          <div class="flex gap-4">
                              <button type="button" id="hint-audio-btn" class="${showAudio ? '' : 'hidden'} w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100">
                                 <i class="ph ph-speaker-high text-2xl"></i>
                              </button>
-                             ${!isFailed && !state.passed ? 
-                                `<button type="button" id="check-btn" class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 shadow-md transition-all">
-                                    Vérifier
-                                </button>` : ''
-                             }
+                             <button type="button" id="check-btn" class="${showAnswer ? 'hidden' : ''} bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 shadow-md transition-all">
+                                Vérifier
+                             </button>
                          </div>
                     </div>
                     
@@ -637,43 +632,43 @@
             const feedback = document.getElementById('feedback-area');
             const audioBtn = document.getElementById('hint-audio-btn');
 
-            if (isFailed) {
-                 feedback.innerHTML = `<span class="text-red-500">Terminé. Passons à la suite.</span>`;
+            if (showAnswer) {
+                feedback.innerHTML = `<span class="text-gray-500">La réponse était : ${data.target}</span>`;
             } else if (state.passed) {
                 feedback.innerHTML = `<span class="text-green-600">Correct !</span>`;
-                if(input) input.classList.add('border-green-500', 'text-green-700');
+                input.classList.add('border-green-500', 'text-green-700');
             }
 
-            if(audioBtn) audioBtn.onclick = () => playAudio(data.hintAudio);
+            audioBtn.onclick = () => playAudio(data.hintAudio);
 
-            if(checkBtn) {
-                checkBtn.onclick = () => {
-                    if (!input) return;
-                    const val = input.value.trim().replace(/\.$/, ""); 
-                    const targetClean = data.target.replace(/\.$/, "");
+            checkBtn.onclick = () => {
+                const val = input.value.trim().replace(/\.$/, ""); 
+                const targetClean = data.target.replace(/\.$/, "");
+                
+                state.attempts++;
+
+                if (val === targetClean) {
+                    state.passed = true;
+                    if(correctSound) correctSound.triggerAttackRelease('E5', '0.1s');
+                    feedback.innerHTML = `<span class="text-green-600">Correct !</span>`;
+                    input.classList.add('border-green-500', 'text-green-700');
+                    checkBtn.classList.add('hidden');
+                    updateProgress();
+                } else {
+                    if(correctSound) correctSound.triggerAttackRelease('G2', '0.2s');
                     
-                    state.attempts++;
-
-                    if (val === targetClean) {
-                        state.passed = true;
-                        if(correctSound) correctSound.triggerAttackRelease('E5', '0.1s');
-                        feedback.innerHTML = `<span class="text-green-600">Correct !</span>`;
-                        input.classList.add('border-green-500', 'text-green-700');
-                        checkBtn.remove(); // Remove button on success
+                    if (state.attempts >= 3) {
+                        feedback.innerHTML = `<span class="text-red-500">Terminé. Passons à la suite.</span>`;
+                        input.value = data.target;
+                        input.disabled = true;
+                        checkBtn.classList.add('hidden');
                         updateProgress();
                     } else {
-                        if(correctSound) correctSound.triggerAttackRelease('G2', '0.2s');
-                        
-                        if (state.attempts >= 3) {
-                            render(); // Re-render to switch to text view
-                            updateProgress();
-                        } else {
-                            feedback.innerHTML = `<span class="text-red-500">Incorrect (${state.attempts}/3)</span>`;
-                            render();
-                        }
+                        feedback.innerHTML = `<span class="text-red-500">Incorrect (${state.attempts}/3)</span>`;
+                        render();
                     }
-                };
-            }
+                }
+            };
         }
 
         function renderOutro(data) {
@@ -720,7 +715,7 @@
             state.attempts++;
 
             try {
-                // Correct payload with referenceText as required by backend
+                // Change payload key back to referenceText so backend recognizes it
                 const payload = { 
                     audioBase64: audioBase64, 
                     languageCode: "Kor", 
@@ -736,18 +731,44 @@
                 if (!res.ok) throw new Error("API Error: " + res.status); 
                 const result = await res.json();
                 
-                // Use 'text' from response (utterance might be in raw but text is standard)
                 const recognizedText = result.text || ""; 
-                const score = Number(result.assessment?.pronunciation_score || 0);
                 
-                state.lastScore = score;
-                state.lastText = recognizedText; 
-
-                // Strict validation: Score AND text match (ignoring spaces/punctuation)
+                // --- Updated Logic: Text Similarity ---
                 const cleanRef = referenceText.replace(/[\s.,?!]/g, "");
                 const cleanRec = recognizedText.replace(/[\s.,?!]/g, "");
 
-                if (score >= 80 && cleanRec === cleanRef) {
+                let matchScore = 0;
+                if (cleanRef.length === 0 && cleanRec.length === 0) {
+                    matchScore = 100;
+                } else {
+                    // Calcul de la distance de Levenshtein
+                    const matrix = [];
+                    for (let i = 0; i <= cleanRec.length; i++) matrix[i] = [i];
+                    for (let j = 0; j <= cleanRef.length; j++) matrix[0][j] = j;
+
+                    for (let i = 1; i <= cleanRec.length; i++) {
+                        for (let j = 1; j <= cleanRef.length; j++) {
+                            if (cleanRec.charAt(i - 1) === cleanRef.charAt(j - 1)) {
+                                matrix[i][j] = matrix[i - 1][j - 1];
+                            } else {
+                                matrix[i][j] = Math.min(
+                                    matrix[i - 1][j - 1] + 1, // substitution
+                                    matrix[i][j - 1] + 1,     // insertion
+                                    matrix[i - 1][j] + 1      // deletion
+                                );
+                            }
+                        }
+                    }
+                    const distance = matrix[cleanRec.length][cleanRef.length];
+                    const maxLength = Math.max(cleanRef.length, cleanRec.length);
+                    matchScore = Math.round(((maxLength - distance) / maxLength) * 100);
+                }
+
+                state.lastScore = matchScore; // Score as number without %
+                state.lastText = recognizedText; 
+
+                // Si la correspondance est d'au moins 80%, c'est réussi
+                if (matchScore >= 80) {
                     if(correctSound) correctSound.triggerAttackRelease('C5', '0.2s');
                     state.passed = true;
                 } else {
@@ -755,8 +776,10 @@
                 }
             } catch (e) {
                 console.error("Speech Eval Failed:", e);
+                
                 state.lastScore = 0; 
                 state.lastText = "Erreur de connexion";
+                
                 if(correctSound) correctSound.triggerAttackRelease('G2', '0.2s');
             }
             
@@ -773,7 +796,6 @@
 
             switch(data.type) {
                 case 'cover': renderCover(data); break;
-                case 'intro': renderIntro(data); break;
                 case 'learn': renderLearn(data); break;
                 case 'repeat': renderRepeat(data); break;
                 case 'listening_quiz': renderListeningQuiz(data); break;
