@@ -182,7 +182,7 @@
             {
                 type: 'speaking_challenge',
                 promptFr: "Papa n’est pas médecin.",
-                promptKr: "아빠_ 의사_ ____.", // Inferring prompt structure based on previous
+                promptKr: "아빠_ 의사_ ____.", 
                 target: "아빠는 의사가 아니에요",
                 hintAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1768634436/L3S10_snwg31.mp3"
             },
@@ -311,7 +311,6 @@
         }
 
         function renderLearn(data) {
-            // Reusing logic from Lesson 2, adaptable if needed
             let sentenceHtml = data.parts ? data.parts.map(part => `<span class="${part.color} sentence-part text-2xl md:text-4xl font-bold">${part.text === " " ? "&nbsp;" : part.text}</span>`).join('') : "";
             
             contentArea.innerHTML = `
@@ -369,18 +368,15 @@
                 }
             }
 
-            // Modified Layout: Flex-1 spacers top/bottom to center the card perfectly
             contentArea.innerHTML = `
                 <div class="fade-in w-full h-full flex flex-col items-center max-w-2xl mx-auto">
                     
-                    <!-- Top Section: Instruction (Pushed to bottom of upper space) -->
                     <div class="flex-1 w-full flex flex-col justify-end items-center pb-4 min-h-0">
                         <h3 class="text-sm md:text-base font-bold text-indigo-600 uppercase tracking-wider text-center shrink-0">
                             ${mode === 'repeat' ? 'Répétez après moi' : 'Parlez en coréen'}
                         </h3>
                     </div>
                     
-                    <!-- Middle Section: Card (Centered) -->
                     <div class="bg-white w-full p-8 md:p-10 rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center gap-6 shrink-0 z-10">
                         <div class="space-y-2 text-center">
                              ${mode === 'challenge' ? `<p class="text-gray-500 text-lg mb-2">${data.promptFr}</p>` : ''}
@@ -399,7 +395,6 @@
                         </div>
                     </div>
 
-                    <!-- Bottom Section: Feedback (Pushed to top of lower space) -->
                     <div class="flex-1 w-full flex flex-col justify-start items-center pt-4 min-h-0">
                         <div id="feedback-area" class="h-16 flex items-center justify-center w-full text-center">
                             <p class="text-gray-400 text-sm">Appuyez sur le micro pour parler</p>
@@ -730,18 +725,43 @@
                 const result = await res.json();
                 
                 const recognizedText = result.text || ""; 
-                // Ensure we read the score correctly
-                const score = Number(result.assessment?.pronunciation_score || 0);
                 
-                state.lastScore = score;
-                state.lastText = recognizedText; 
-
-                // Validate Text Matching (Ignore spaces and punctuation)
+                // --- Updated Logic: Text Similarity ---
                 const cleanRef = referenceText.replace(/[\s.,?!]/g, "");
                 const cleanRec = recognizedText.replace(/[\s.,?!]/g, "");
 
-                // Pass only if score is high ENOUGH AND text matches
-                if (score >= 80 && cleanRec === cleanRef) {
+                let matchScore = 0;
+                if (cleanRef.length === 0 && cleanRec.length === 0) {
+                    matchScore = 100;
+                } else {
+                    // Calcul de la distance de Levenshtein
+                    const matrix = [];
+                    for (let i = 0; i <= cleanRec.length; i++) matrix[i] = [i];
+                    for (let j = 0; j <= cleanRef.length; j++) matrix[0][j] = j;
+
+                    for (let i = 1; i <= cleanRec.length; i++) {
+                        for (let j = 1; j <= cleanRef.length; j++) {
+                            if (cleanRec.charAt(i - 1) === cleanRef.charAt(j - 1)) {
+                                matrix[i][j] = matrix[i - 1][j - 1];
+                            } else {
+                                matrix[i][j] = Math.min(
+                                    matrix[i - 1][j - 1] + 1, // substitution
+                                    matrix[i][j - 1] + 1,     // insertion
+                                    matrix[i - 1][j] + 1      // deletion
+                                );
+                            }
+                        }
+                    }
+                    const distance = matrix[cleanRec.length][cleanRef.length];
+                    const maxLength = Math.max(cleanRef.length, cleanRec.length);
+                    matchScore = Math.round(((maxLength - distance) / maxLength) * 100);
+                }
+
+                state.lastScore = matchScore; // Score as number
+                state.lastText = recognizedText; 
+
+                // Si la correspondance est d'au moins 80%, c'est réussi
+                if (matchScore >= 80) {
                     if(correctSound) correctSound.triggerAttackRelease('C5', '0.2s');
                     state.passed = true;
                 } else {
