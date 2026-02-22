@@ -233,6 +233,7 @@
         let isRecording = false;
         let mediaRecorder;
         let audioChunks = [];
+        let globalStream = null; // Stored globally to ensure hardware mic closes perfectly
         let correctSound = null;
         let completionSynth = null;
         let pageTurnSynth = null;
@@ -247,13 +248,11 @@
             await Tone.start();
             correctSound = new Tone.Synth().toDestination();
             completionSynth = new Tone.PolySynth().toDestination();
-            // Reverted to C2 to match other lessons
             pageTurnSynth = new Tone.MembraneSynth({ envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination();
             hasInteracted = true;
         }
 
         function playPageSound() {
-            // Reverted to C2
             if (pageTurnSynth && hasInteracted) pageTurnSynth.triggerAttackRelease("C2", "32n");
         }
 
@@ -415,7 +414,6 @@
                 }
             }
 
-            // Text Fix: Use data.instruction if available, otherwise fallback based on mode
             const instructionText = data.instruction || (mode === 'repeat' ? 'Répétez après moi' : 'Parlez en coréen');
 
             contentArea.innerHTML = `
@@ -488,15 +486,23 @@
 
             recordBtn.onclick = async () => {
                 if (state.attempts >= 3 || state.passed) return; 
+                
                 if (!isRecording) {
+                    stopAudio(); // Ensures no reference audio is playing while mic is open
                     try {
-                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        mediaRecorder = new MediaRecorder(stream);
+                        // Added noise suppression and echo cancellation to prevent feedback loop maxing out volume
+                        globalStream = await navigator.mediaDevices.getUserMedia({ 
+                            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+                        });
+                        mediaRecorder = new MediaRecorder(globalStream);
                         audioChunks = [];
                         mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
                         
                         mediaRecorder.onstop = async () => {
-                            stream.getTracks().forEach(track => track.stop());
+                            if (globalStream) {
+                                globalStream.getTracks().forEach(track => track.stop());
+                                globalStream = null;
+                            }
                             if (recordingTimeout) clearTimeout(recordingTimeout);
                             
                             try {
@@ -517,9 +523,15 @@
                         isRecording = true;
                         
                         recordingTimeout = setTimeout(() => {
-                            if (isRecording && mediaRecorder.state === 'recording') {
-                                mediaRecorder.stop();
+                            if (isRecording) {
                                 isRecording = false;
+                                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                                    mediaRecorder.stop();
+                                }
+                                if (globalStream) {
+                                    globalStream.getTracks().forEach(track => track.stop());
+                                    globalStream = null;
+                                }
                                 if (document.contains(recordBtn)) {
                                     recordBtn.classList.remove('bg-red-500', 'text-white', 'ring-red-200');
                                     recordBtn.innerHTML = '<i class="ph ph-microphone text-3xl md:text-4xl"></i>';
@@ -530,18 +542,24 @@
 
                         recordBtn.classList.add('bg-red-500', 'text-white', 'ring-red-200');
                         recordBtn.innerHTML = '<i class="ph ph-stop text-3xl md:text-4xl"></i>';
-                        feedbackArea.innerHTML = '<p class="text-indigo-600 animate-pulse text-sm">Enregistrement...</p>';
+                        if (feedbackArea) feedbackArea.innerHTML = '<p class="text-indigo-600 animate-pulse text-sm">Enregistrement...</p>';
                     } catch (err) {
                         console.error(err);
-                        feedbackArea.innerHTML = '<p class="text-red-400 text-sm">Microphone requis.</p>';
+                        if (feedbackArea) feedbackArea.innerHTML = '<p class="text-red-400 text-sm">Microphone requis.</p>';
                     }
                 } else {
-                    if (recordingTimeout) clearTimeout(recordingTimeout);
-                    mediaRecorder.stop();
                     isRecording = false;
+                    if (recordingTimeout) clearTimeout(recordingTimeout);
+                    if (mediaRecorder && mediaRecorder.state === 'recording') {
+                        mediaRecorder.stop();
+                    }
+                    if (globalStream) {
+                        globalStream.getTracks().forEach(track => track.stop());
+                        globalStream = null;
+                    }
                     recordBtn.classList.remove('bg-red-500', 'text-white', 'ring-red-200');
                     recordBtn.innerHTML = '<i class="ph ph-microphone text-3xl md:text-4xl"></i>';
-                    feedbackArea.innerHTML = '<p class="text-gray-500 text-sm">Analyse...</p>';
+                    if (feedbackArea) feedbackArea.innerHTML = '<p class="text-gray-500 text-sm">Analyse...</p>';
                 }
             };
         }
