@@ -210,7 +210,7 @@
                     { text: "경찰", meaning: "policier", color: "text-blue-600" },
                     { text: "이에요.", meaning: "être", color: "text-green-600" }
                 ],
-                explanation: "On peut construire diverses phrases en utilisant la même structure.",
+                explanation: "On peut construire diverses phrases en 일치도를 기준요.",
                 mainAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1768634348/L1S5_njgltm.mp3",
                 explAudio: "https://res.cloudinary.com/de76i94ia/video/upload/v1768634450/audio_6_kqlfkr.mp3"
             },
@@ -499,7 +499,7 @@
             if (state.passed) {
                 feedbackArea.innerHTML = `
                     <div class="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm w-full">
-                        <span class="font-bold block">Très bien ! Score: ${state.lastScore}%</span>
+                        <span class="font-bold block">Très bien ! Score: ${state.lastScore}</span>
                         ${state.lastText ? `<span class="text-xs font-normal opacity-80">"${state.lastText}"</span>` : ''}
                     </div>`;
                 recordBtn.disabled = true;
@@ -507,7 +507,7 @@
             } else if (state.attempts >= 3) {
                 feedbackArea.innerHTML = `
                     <div class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm w-full">
-                        <span class="font-bold block">Passons à la suite. Score: ${state.lastScore}%</span>
+                        <span class="font-bold block">Passons à la suite. Score: ${state.lastScore}</span>
                         ${state.lastText ? `<span class="text-xs font-normal opacity-80">"${state.lastText}"</span>` : ''}
                     </div>`;
                 recordBtn.disabled = true;
@@ -515,7 +515,7 @@
             } else if (state.attempts > 0) {
                 feedbackArea.innerHTML = `
                     <div class="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg text-sm w-full">
-                        <span class="font-bold block">Essayez encore (${state.attempts}/3). Score: ${state.lastScore}%</span>
+                        <span class="font-bold block">Essayez encore (${state.attempts}/3). Score: ${state.lastScore}</span>
                         ${state.lastText ? `<span class="text-xs font-normal opacity-80">"${state.lastText}"</span>` : ''}
                     </div>`;
             }
@@ -620,7 +620,7 @@
                 if (cleanRef.length === 0 && cleanRec.length === 0) {
                     matchScore = 100;
                 } else {
-                    // Calcul de la distance de Levenshtein (Levenshtein Distance)
+                    // Calcul de la distance de Levenshtein
                     const matrix = [];
                     for (let i = 0; i <= cleanRec.length; i++) matrix[i] = [i];
                     for (let j = 0; j <= cleanRef.length; j++) matrix[0][j] = j;
@@ -643,7 +643,7 @@
                     matchScore = Math.round(((maxLength - distance) / maxLength) * 100);
                 }
 
-                state.lastScore = matchScore; // Utiliser le pourcentage de correspondance comme score
+                state.lastScore = matchScore; // Score as number
                 state.lastText = recognizedText; 
 
                 // Si la correspondance est d'au moins 80%, c'est réussi
@@ -667,7 +667,6 @@
         function renderQuiz(data) {
              const state = getExerciseState(currentIndex);
              
-             // Using flex-1 spacing trick again for perfect centering without layout shifts
              contentArea.innerHTML = `
                 <div class="fade-in w-full h-full flex flex-col items-center max-w-2xl mx-auto">
                     
