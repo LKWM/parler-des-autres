@@ -453,7 +453,7 @@
             if (state.passed) {
                 feedbackArea.innerHTML = `
                     <div class="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm w-full">
-                        <span class="font-bold block">Très bien ! Score: ${state.lastScore}%</span>
+                        <span class="font-bold block">Très bien ! Score: ${state.lastScore}</span>
                         ${state.lastText ? `<span class="text-xs font-normal opacity-80">"${state.lastText}"</span>` : ''}
                     </div>`;
                 recordBtn.disabled = true;
@@ -461,7 +461,7 @@
             } else if (state.attempts >= 3) {
                 feedbackArea.innerHTML = `
                     <div class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm w-full">
-                        <span class="font-bold block">Passons à la suite. Score: ${state.lastScore}%</span>
+                        <span class="font-bold block">Passons à la suite. Score: ${state.lastScore}</span>
                         ${state.lastText ? `<span class="text-xs font-normal opacity-80">"${state.lastText}"</span>` : ''}
                     </div>`;
                 recordBtn.disabled = true;
@@ -469,7 +469,7 @@
             } else if (state.attempts > 0) {
                 feedbackArea.innerHTML = `
                     <div class="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg text-sm w-full">
-                        <span class="font-bold block">Essayez encore (${state.attempts}/3). Score: ${state.lastScore}%</span>
+                        <span class="font-bold block">Essayez encore (${state.attempts}/3). Score: ${state.lastScore}</span>
                         ${state.lastText ? `<span class="text-xs font-normal opacity-80">"${state.lastText}"</span>` : ''}
                     </div>`;
             }
@@ -805,7 +805,7 @@
                     matchScore = Math.round(((maxLength - distance) / maxLength) * 100);
                 }
 
-                state.lastScore = matchScore; // Utiliser le pourcentage de correspondance comme score
+                state.lastScore = matchScore; // Score as number
                 state.lastText = recognizedText; 
 
                 // Si la correspondance est d'au moins 80%, c'est réussi
