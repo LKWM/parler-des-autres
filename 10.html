@@ -517,7 +517,6 @@
                     </div>
                 </div>
             `;
-            // Removed bottom feedback area and manual next button
         }
 
         // --- Shared Recording Logic ---
@@ -647,7 +646,10 @@
                 const cleanRef = cleanString(referenceText);
                 const cleanRec = cleanString(recognizedText);
                 const similarityScore = calculateSimilarity(cleanRec, cleanRef);
-                const passed = similarityScore >= 0.8;
+                const matchScore = Math.round(similarityScore * 100);
+                const passed = matchScore >= 80;
+                
+                state.lastScore = matchScore;
 
                 if (mode === 'multi_step') {
                     // Multi-step Logic: Pass OR Max Attempts -> Move Immediately
@@ -739,11 +741,9 @@
 
             // Handle multi-step transition on button click
             if (currentData.type === 'multi_step_challenge') {
-                // If not finished, do not advance page
                 if (!state.isFinished) {
-                    // We shouldn't be here via main button if not finished, 
-                    // unless updateProgress logic is wrong.
-                    // But if finished, proceed to next page.
+                    // Prevent advancing if not finished
+                    return;
                 }
             }
 
