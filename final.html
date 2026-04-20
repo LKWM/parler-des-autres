@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CoréenO - Test de coréen fondamental 1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+        :root { --unit: 1vmin; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1f2937;
+            margin: 0; padding: 0;
+            width: 100vw; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden;
+        }
+        .korean-text { font-family: 'Noto Sans KR', sans-serif; }
+
+        #app-container {
+            background-color: white;
+            position: relative; overflow: hidden;
+            display: flex; flex-direction: column;
+            width: 100%; height: 100%;
+        }
+        @media (min-width: 1024px) {
+            #app-container {
+                aspect-ratio: 16/9; width: auto; height: 100vh;
+                max-width: 177.78vh;
+                box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            }
+            html { font-size: 2.5vh; }
+        }
+        @media (max-width: 1023px) {
+            #app-container { width: 100%; height: 100%; }
+            html { font-size: 16px; }
+        }
+
+        .page-wrapper {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: clamp(1vh,2vmin,3vh) clamp(2vw,4vmin,4vw);
+            width: 100%; height: 100%; box-sizing: border-box; overflow: hidden;
+        }
+        .page-wrapper-writing {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: clamp(1vh,2vmin,3vh) clamp(2vw,4vmin,4vw);
+            padding-top: clamp(7vh,10vmin,12vh);
+            width: 100%; height: 100%; box-sizing: border-box; overflow: hidden;
+        }
+
+        .card-box {
+            background: white; border: 1px solid #e5e7eb; border-radius: 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            padding: clamp(1rem,3vmin,2.5rem);
+            width: 100%; max-width: 800px;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            text-align: center; flex-shrink: 1; max-height: 100%;
+        }
+
+        .text-fluid-xl   { font-size: clamp(1.5rem,5vmin,4rem); }
+        .text-fluid-lg   { font-size: clamp(1.2rem,3.5vmin,2.5rem); }
+        .text-fluid-base { font-size: clamp(0.9rem,2.5vmin,1.5rem); }
+        .text-fluid-sm   { font-size: clamp(0.8rem,2vmin,1.25rem); }
+        .text-fluid-xs   { font-size: clamp(0.7rem,1.6vmin,1rem); }
+        .icon-fluid-lg   { font-size: clamp(2rem,6vmin,5rem); }
+        .icon-fluid-md   { font-size: clamp(1.5rem,4vmin,3rem); }
+
+        .nav-btn {
+            width: 3.5rem; height: 3.5rem; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        @media (min-width: 1024px) { .nav-btn { width: 5rem; height: 5rem; } }
+
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from{opacity:0;transform:scale(0.98);}to{opacity:1;transform:scale(1);} }
+
+        .recording-pulse { animation: pulse-red 1.5s infinite; }
+        @keyframes pulse-red {
+            0%  {box-shadow:0 0 0 0 rgba(239,68,68,0.7);}
+            70% {box-shadow:0 0 0 15px rgba(239,68,68,0);}
+            100%{box-shadow:0 0 0 0 rgba(239,68,68,0);}
+        }
+
+        .mcq-option {
+            width: 100%; max-width: 700px;
+            padding: clamp(0.55rem,1.6vmin,1.1rem) clamp(1rem,2.5vmin,2rem);
+            border: 2px solid #e5e7eb; border-radius: 1rem;
+            cursor: pointer; transition: all 0.2s;
+            text-align: left; background: white;
+            display: flex; align-items: center; gap: clamp(0.5rem,1.5vmin,1rem);
+        }
+        .mcq-option:hover:not(.selected):not([disabled]) { border-color:#6366f1; background:#eef2ff; }
+        .mcq-option.selected { border-color:#6366f1; background:#eef2ff; color:#4338ca; font-weight:700; }
+
+        .write-input {
+            width: 100%; max-width: 700px;
+            border: 2px solid #e5e7eb; border-radius: 1rem;
+            padding: clamp(0.6rem,1.8vmin,1.2rem) clamp(1rem,2.5vmin,2rem);
+            font-family: 'Noto Sans KR', sans-serif;
+            outline: none; text-align: center; background: white;
+            transition: border-color 0.2s;
+            font-size: clamp(0.9rem,2.5vmin,1.5rem);
+        }
+        .write-input:focus { border-color:#6366f1; }
+
+        .audio-play-btn {
+            display: flex; align-items: center; justify-content: center;
+            gap: clamp(0.4rem,1vmin,0.8rem);
+            padding: clamp(0.6rem,1.5vmin,1.2rem) clamp(1.5rem,3vmin,2.5rem);
+            background:#eef2ff; border:2px solid #c7d2fe;
+            border-radius:999px; color:#4338ca;
+            font-weight:700; cursor:pointer; transition:all 0.2s;
+            font-size: clamp(0.8rem,2vmin,1.25rem);
+        }
+        .audio-play-btn:hover:not(:disabled){background:#e0e7ff;border-color:#6366f1;}
+        .audio-play-btn:disabled{opacity:0.45;cursor:not-allowed;}
+
+        #progress-bar-fill {
+            height:100%;
+            background:linear-gradient(90deg,#6366f1,#818cf8);
+            border-radius:999px; transition:width 0.4s ease;
+        }
+
+        .timer-normal  { color:#6b7280; }
+        .timer-warning { color:#f59e0b; }
+        .timer-danger  { color:#ef4444; animation:blink 1s step-end infinite; }
+        @keyframes blink{50%{opacity:0.4;}}
+
+        .rec-btn-base {
+            border-radius:50%; display:flex; align-items:center;
+            justify-content:center; transition:all 0.2s;
+        }
+        .consigne-item {
+            display:flex; align-items:flex-start;
+            gap:clamp(0.5rem,1.5vmin,1rem); text-align:left;
+        }
+        .result-item {
+            width:100%; max-width:700px;
+            padding:clamp(0.5rem,1.5vmin,1rem) clamp(1rem,2vmin,1.5rem);
+            border-radius:0.75rem; background:#f9fafb; border:1px solid #e5e7eb;
+        }
+
+        /* Q20 interview style */
+        .interview-bubble {
+            background:#eef2ff; border:2px solid #c7d2fe;
+            border-radius:0 1.5rem 1.5rem 1.5rem;
+            padding: clamp(1rem,2.5vmin,2rem) clamp(1.2rem,3vmin,2.5rem);
+            max-width:600px; width:100%;
+            display:flex; align-items:center; gap:clamp(0.8rem,2vmin,1.5rem);
+        }
+
+        .score-row{display:flex;align-items:center;justify-content:space-between;padding:clamp(0.4rem,1.2vmin,0.8rem) clamp(0.8rem,2vmin,1.2rem);border-radius:0.75rem;width:100%;max-width:700px;}
+        .score-row-green{background:#f0fdf4;border:1px solid #bbf7d0;}
+        .score-row-red{background:#fff1f2;border:1px solid #fecdd3;}
+        .score-row-blue{background:#eff6ff;border:1px solid #bfdbfe;}
+    </style>
+</head>
+<body>
+<div id="app-container">
+
+    <!-- HEADER -->
+    <div id="header" class="absolute top-0 left-0 right-0 z-20 hidden"
+         style="padding:clamp(0.8vh,1.5vmin,1.5vh) clamp(2vw,3vmin,3vw);">
+        <div class="flex items-center gap-[2vmin] w-full">
+            <span id="page-indicator"
+                  class="font-mono text-gray-400 font-bold text-fluid-xs bg-gray-100 px-3 py-1 rounded-full whitespace-nowrap flex-shrink-0">
+                1 / 20
+            </span>
+            <div class="flex-1 h-[0.8vh] bg-gray-200 rounded-full overflow-hidden">
+                <div id="progress-bar-fill" style="width:0%"></div>
+            </div>
+            <span id="timer-display"
+                  class="font-mono font-bold text-fluid-xs bg-gray-100 px-3 py-1 rounded-full whitespace-nowrap flex-shrink-0 timer-normal">
+                30:00
+            </span>
+        </div>
+    </div>
+
+    <!-- MAIN -->
+    <div id="content-area"
+         class="flex-grow flex flex-col items-center justify-center w-full h-full relative text-center">
+    </div>
+
+    <!-- FOOTER -->
+    <div id="footer"
+         class="absolute bottom-0 w-full pointer-events-none hidden z-20"
+         style="padding:clamp(1.5vh,2.5vmin,3vh) clamp(3vw,4vmin,4vw);">
+        <div class="flex justify-end items-center w-full">
+            <button id="btn-next"
+                    class="nav-btn bg-indigo-600 text-white hover:bg-indigo-700 pointer-events-auto">
+                <i class="ph ph-arrow-right icon-fluid-md"></i>
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────────
+const BASE_44_ORIGIN    = "https://coreeno.base44.app";
+const CLOVA_API_URL     = BASE_44_ORIGIN + '/api/functions/naverClovaSpeech';
+const GEMINI_API_URL    = BASE_44_ORIGIN + '/api/functions/Geminichat';
+const EXAM_DURATION_SEC = 30 * 60;
+
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+let currentPage     = 0;
+let audioCtxInited  = false;
+let pageTurnSynth, completionSynth, correctSynth;
+let currentAudioObj = null;
+let autoPlayTimer   = null;
+let timerInterval   = null;
+let timeRemaining   = EXAM_DURATION_SEC;
+let timerStarted    = false;
+const pageAnswers   = {};
+let mediaRecorder, audioChunks = [], isRecording = false, recordingTimeout;
+
+// ─────────────────────────────────────────────
+// PAGES / QUESTIONS
+// ─────────────────────────────────────────────
+/*
+  Types: cover | mcq | listening | writing | speaking | results
+  All MCQ options & listening questions in French (or pure Korean grammar check)
+  No French hints on writing/speaking pages
+*/
+const pages = [
+
+// ── COVER ──────────────────────────────────────────────────────────
+{ type:'cover' },
+
+// ── Q9  MCQ ── 한국어 문장 고르기: 저는 벨기에 사람이에요
+// consigne만 — 본문 없음. 선지 전부 한국어 (이에요/예요/사람 유무 혼합)
+{
+    type:'mcq', qNum:1,
+    instruction:"Choisissez la traduction correcte en coréen.",
+    question:"Je suis belge.",
+    options:[
+        "저는 벨기에 사람이에요.",
+        "저는 벨기에 사람예요.",
+        "저는 벨기에예요.",
+        "저는 벨기에 사람이 아니에요."
+    ],
+    answer:0
+},
+
+// ── Q1  MCQ ── 문장 전체 번역 (단어 혼합: auteur / pas artiste)
+// 선지 전부 프랑스어, 의사 없음 → 한국어 모르면 못 풀음
+{
+    type:'mcq', qNum:2,
+    instruction:"Choisissez la traduction correcte.",
+    question:"저는 작가예요.",
+    options:[
+        "Je suis infirmier.",
+        "Je ne suis pas artiste.",
+        "Je suis auteur.",
+        "Vous êtes auteur ?"
+    ],
+    answer:2   // 작가 = auteur
+},
+
+// ── Q2  MCQ ── 빈칸 채우기: 경찰 (받침 ㄹ → 이에요)
+// 오답 선지: 예요(문법 오류), 이야(반말), 이 아니에요(부정문)
+{
+    type:'mcq', qNum:3,
+    instruction:"Complétez la phrase avec la terminaison correcte.",
+    question:"저는 경찰___.",
+    options:["예요","이에요","해요","이다"],
+    answer:1   // 경찰 ends ㄹ(consonne) → 이에요
+},
+
+// ── Q3  LISTENING ── 저는 간호사예요 → 직업을 프랑스어로
+{
+    type:'listening', qNum:4,
+    instruction:"Écoutez et choisissez la réponse correcte.",
+    audio:"https://res.cloudinary.com/de76i94ia/video/upload/v1776533054/%E1%84%8C%E1%85%A5%E1%84%82%E1%85%B3%E1%86%AB_%E1%84%80%E1%85%A1%E1%86%AB%E1%84%92%E1%85%A9%E1%84%89%E1%85%A1p_eqsyr9.wav",
+    maxPlays:2,
+    question:"Quelle est la profession de cette personne ?",
+    options:[
+        "Médecin",
+        "Infirmier",
+        "Enseignant",
+        "Employé de bureau"
+    ],
+    answer:1   // 간호사
+},
+
+// ── Q4  MCQ ── 「직업이 뭐예요?」번역 (선지 프랑스어, 유사 표현 혼합)
+{
+    type:'mcq', qNum:5,
+    instruction:"Choisissez la traduction correcte.",
+    question:"직업이 뭐예요?",
+    options:[
+        "Quel est votre prénom ?",
+        "D'où venez-vous ?",
+        "Quelle est votre profession ?",
+        "Comment vous appelez-vous ?"
+    ],
+    answer:2   // 직업 = profession
+},
+
+// ── Q5  WRITING — médecin 제시, 전체 문장 작성
+{
+    type:'writing', qNum:6,
+    instruction:"Répondez à la question en coréen. (médecin)",
+    question:"직업이 뭐예요 ?",
+    answer:"저는 의사예요",
+    acceptedAnswers:["저는 의사예요","의사예요"]
+},
+
+// ── Q6  LISTENING ── 대화: 이름/직업 → 직업 프랑스어로
+{
+    type:'listening', qNum:7,
+    instruction:"Écoutez le dialogue et répondez à la question.",
+    audio:"https://res.cloudinary.com/de76i94ia/video/upload/v1776533141/%E1%84%8B%E1%85%B5%E1%84%85%E1%85%B3%E1%86%B7_%E1%84%8C%E1%85%A6%E1%84%82%E1%85%B5_qkao4n.mp3",
+    maxPlays:2,
+    question:"Quelle est la profession de la femme ?",
+    options:[
+        "Médecin",
+        "Employée de bureau",
+        "Étudiante",
+        "Infirmière"
+    ],
+    answer:2   // 학생
+},
+
+// ── Q7  MCQ ── 아니에요 파티클 오류 찾기 (선지 전부 한국어)
+{
+    type:'mcq', qNum:8,
+    instruction:"Quelle phrase contient une erreur grammaticale ?",
+    question:"",
+    options:[
+        "저는 학생이 아니에요.",
+        "저는 의사가 아니에요.",
+        "저는 가수가 아니에요.",
+        "저는 선생님가 아니에요."
+    ],
+    answer:3   // 선생님 ends ㅁ (consonne) → 이 아니에요
+},
+
+// ── Q8  WRITING ── 빈칸+상황: 이에요 vs 예요 구분 (부정 아닌 긍정)
+// 힌트 없음 — 전체 문장을 써야 함
+{
+    type:'writing', qNum:9,
+    instruction:"Écrivez la phrase suivante en coréen.",
+    question:"Je suis employé de bureau.",
+    answer:"저는 회사원이에요",
+    acceptedAnswers:["저는 회사원이에요","회사원이에요"]
+},
+
+// ── Q11  LISTENING ── 대화: 누구/오빠/직업 → 직업 프랑스어
+{
+    type:'listening', qNum:10,
+    instruction:"Écoutez le dialogue et répondez à la question.",
+    audio:"https://res.cloudinary.com/de76i94ia/video/upload/v1776533139/%E1%84%82%E1%85%AE%E1%84%80%E1%85%AE%E1%84%8B%E1%85%A9%E1%84%88%E1%85%A1%E1%84%8B%E1%85%B4%E1%84%89%E1%85%A1_m0fqkp.mp3",
+    maxPlays:2,
+    question:"Quelle est la profession du grand frère ?",
+    options:[
+        "Étudiant",
+        "Employé de bureau",
+        "Médecin",
+        "Infirmier"
+    ],
+    answer:2   // 의사
+},
+
+// ── Q12  WRITING ── 부정문 전체 작성 (힌트 없음)
+{
+    type:'writing', qNum:11,
+    instruction:"Écrivez la phrase suivante en coréen.",
+    question:"Je ne suis pas chanteur.",
+    answer:"저는 가수가 아니에요",
+    acceptedAnswers:["저는 가수가 아니에요","가수가 아니에요"]
+},
+
+// ── Q13  MCQ ── 예요/이에요 오류 찾기
+{
+    type:'mcq', qNum:12,
+    instruction:"Quelle phrase contient une erreur ?",
+    question:"",
+    options:[
+        "저는 작가예요.",
+        "저는 간호사예요.",
+        "저는 선생님이에요.",
+        "저는 엄마이에요."
+    ],
+    answer:3   // 엄마 ends in vowel ㅏ → 예요
+},
+
+// ── Q14  WRITING ── Cette personne est ma grande sœur → 주어 포함 1점, 생략 0.5점
+{
+    type:'writing', qNum:13, specialScoring:'q14',
+    instruction:"Écrivez la phrase suivante en coréen.",
+    question:"Cette personne est ma grande sœur.",
+    fullAnswers:[
+        "이 사람은 우리 언니예요","이 사람은 우리 언니입니다",
+        "이 사람은 제 언니예요","이 사람은 제 언니입니다",
+        "이 사람은 우리 누나예요","이 사람은 우리 누나입니다",
+        "이 사람은 제 누나예요","이 사람은 제 누나입니다"
+    ],
+    halfAnswers:[
+        "우리 언니예요","우리 언니입니다",
+        "제 언니예요","제 언니입니다",
+        "우리 누나예요","우리 누나입니다",
+        "제 누나예요","제 누나입니다",
+        "언니예요","언니입니다",
+        "누나예요","누나입니다"
+    ]
+},
+
+// ── Q10  LISTENING ── 국적 부정+정정 → 선지 프랑스어
+{
+    type:'listening', qNum:14,
+    instruction:"Écoutez et choisissez la réponse correcte.",
+    audio:"https://res.cloudinary.com/de76i94ia/video/upload/v1776533137/not_french_belge_p9vcod.wav",
+    maxPlays:2,
+    question:"Quelle est la nationalité de cette personne ?",
+    options:[
+        "Français",
+        "Coréen",
+        "Belge",
+        "Elle ne le précise pas."
+    ],
+    answer:2   // 벨기에 사람이에요
+},
+
+// ── Q15  WRITING ── Je suis coréen → 한국어 번역 (한국인/한국 사람 모두 정답)
+{
+    type:'writing', qNum:15,
+    instruction:"Écrivez la phrase suivante en coréen.",
+    question:"Je suis coréen.",
+    answer:"저는 한국 사람이에요",
+    acceptedAnswers:[
+        "저는 한국 사람이에요","한국 사람이에요",
+        "저는 한국인이에요","한국인이에요",
+        "저는 한국 사람입니다","한국 사람입니다",
+        "저는 한국인입니다","한국인입니다"
+    ]
+},
+
+// ── Q16  SPEAKING ── 발음 읽기 (쉬운 문장, 2회 허용)
+{
+    type:'speaking', qNum:16, mode:'clova',
+    instruction:"Lisez cette phrase à voix haute.",
+    prompt:"이 사람은 우리 언니예요.",
+    isKorean:true,
+    referenceTexts:["이 사람은 우리 언니예요","이 사람은 우리 누나예요"],
+    maxAttempts:2
+},
+
+// ── Q17  SPEAKING ── 프랑스어→한국어 (2회)
+{
+    type:'speaking', qNum:17, mode:'clova',
+    instruction:"Dites cette phrase en coréen.",
+    prompt:"Je suis coréen.",
+    isKorean:false,
+    referenceTexts:[
+        "저는 한국 사람이에요","저는 한국인이에요",
+        "저는 한국 사람입니다","저는 한국인입니다"
+    ],
+    maxAttempts:2
+},
+
+// ── Q18  SPEAKING ── 프랑스어→한국어 부정문 (1회)
+{
+    type:'speaking', qNum:18, mode:'clova',
+    instruction:"Dites cette phrase en coréen.",
+    prompt:"Je ne suis pas professeur.",
+    isKorean:false,
+    referenceTexts:[
+        "저는 선생님이 아니에요","저는 선생님이 아닙니다"
+    ],
+    maxAttempts:1
+},
+
+// ── Q19  SPEAKING ── 프랑스어→한국어 국적 (1회)
+{
+    type:'speaking', qNum:19, mode:'clova',
+    instruction:"Dites cette phrase en coréen.",
+    prompt:"Je suis belge.",
+    isKorean:false,
+    referenceTexts:[
+        "저는 벨기에 사람이에요","저는 벨기에 사람입니다",
+        "저는 벨기에인이에요","저는 벨기에인입니다"
+    ],
+    maxAttempts:1
+},
+
+// ── Q20  SPEAKING ── Gemini 자유 발화 (인터뷰 UI, 1회)
+{
+    type:'speaking', qNum:20, mode:'gemini',
+    instruction:"Répondez à la question suivante en coréen.",
+    prompt:"직업이 뭐예요?",
+    isKorean:true,
+    audioPrompt:"https://res.cloudinary.com/de76i94ia/video/upload/v1767087382/sentence_1_vbijvz.mp3",
+    maxAttempts:1
+},
+
+// ── RESULTS ────────────────────────────────────────────────────────
+{ type:'results' }
+];
+
+const TOTAL_QUESTIONS = 20;
+const MAX_SCORE       = 20;
+
+// ─────────────────────────────────────────────
+// AUDIO
+// ─────────────────────────────────────────────
+async function initAudio() {
+    if (audioCtxInited) return;
+    try {
+        await Tone.start();
+        completionSynth = new Tone.PolySynth(Tone.Synth).toDestination();
+        completionSynth.volume.value = 4;
+        pageTurnSynth   = new Tone.MembraneSynth({
+            pitchDecay:0.008, octaves:1,
+            oscillator:{type:'sine'},
+            envelope:{attack:0.001,decay:0.1,sustain:0,release:0.1}
+        }).toDestination();
+        pageTurnSynth.volume.value = 6;
+        correctSynth = new Tone.Synth({
+            oscillator:{type:'triangle'},
+            envelope:{attack:0.001,decay:0.15,sustain:0,release:0.1}
+        }).toDestination();
+        correctSynth.volume.value = 4;
+        audioCtxInited = true;
+    } catch(e){ console.warn("Audio init failed",e); }
+}
+function playSuccessSound(){ if(correctSynth) correctSynth.triggerAttackRelease("C5","16n"); }
+function stopCurrentAudio(){
+    if(autoPlayTimer){clearTimeout(autoPlayTimer);autoPlayTimer=null;}
+    if(currentAudioObj){
+        currentAudioObj.pause();currentAudioObj.currentTime=0;
+        currentAudioObj.onended=null;currentAudioObj=null;
+    }
+}
+function playAudio(src){
+    stopCurrentAudio();if(!src)return;
+    currentAudioObj=new Audio(src);
+    const p=currentAudioObj.play();
+    if(p!==undefined)p.catch(e=>{if(e.name!=='AbortError')console.error(e);});
+}
+function playPageTurnSound(){if(pageTurnSynth)pageTurnSynth.triggerAttackRelease("C2","32n");}
+
+// ─────────────────────────────────────────────
+// TIMER
+// ─────────────────────────────────────────────
+function startTimer(){
+    if(timerStarted)return;
+    timerStarted=true;
+    timerInterval=setInterval(()=>{
+        timeRemaining--;
+        updateTimerDisplay();
+        if(timeRemaining<=0){clearInterval(timerInterval);forceFinish();}
+    },1000);
+}
+function updateTimerDisplay(){
+    const el=document.getElementById('timer-display');if(!el)return;
+    const m=Math.floor(timeRemaining/60),s=timeRemaining%60;
+    el.innerText=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    el.className='font-mono font-bold text-fluid-xs bg-gray-100 px-3 py-1 rounded-full whitespace-nowrap flex-shrink-0 ';
+    if(timeRemaining<=60)el.classList.add('timer-danger');
+    else if(timeRemaining<=300)el.classList.add('timer-warning');
+    else el.classList.add('timer-normal');
+}
+function forceFinish(){
+    stopCurrentAudio();isRecording=false;
+    currentPage=pages.length-1;renderPage();
+}
+
+// ─────────────────────────────────────────────
+// DOM
+// ─────────────────────────────────────────────
+const container    =document.getElementById('content-area');
+const btnNext      =document.getElementById('btn-next');
+const header       =document.getElementById('header');
+const footer       =document.getElementById('footer');
+const pageIndicator=document.getElementById('page-indicator');
+const progressFill =document.getElementById('progress-bar-fill');
+
+function enableNext(){
+    btnNext.disabled=false;
+    btnNext.classList.remove('bg-gray-300','cursor-not-allowed');
+    btnNext.classList.add('bg-indigo-600','hover:bg-indigo-700');
+}
+function disableNext(){
+    btnNext.disabled=true;
+    btnNext.classList.add('bg-gray-300','cursor-not-allowed');
+    btnNext.classList.remove('bg-indigo-600','hover:bg-indigo-700');
+}
+
+// ─────────────────────────────────────────────
+// ROUTER
+// ─────────────────────────────────────────────
+function renderPage(){
+    stopCurrentAudio();
+    container.innerHTML='';
+    const page=pages[currentPage];
+    if(page.type==='cover'||page.type==='results'){
+        header.classList.add('hidden');footer.classList.add('hidden');
+    } else {
+        header.classList.remove('hidden');footer.classList.remove('hidden');
+        pageIndicator.innerText=`${page.qNum} / ${TOTAL_QUESTIONS}`;
+        progressFill.style.width=`${((page.qNum-1)/TOTAL_QUESTIONS)*100}%`;
+        updateTimerDisplay();
+    }
+    switch(page.type){
+        case'cover':    renderCover();         break;
+        case'mcq':      renderMCQ(page);       break;
+        case'listening':renderListening(page); break;
+        case'writing':  renderWriting(page);   break;
+        case'speaking': renderSpeaking(page);  break;
+        case'results':  renderResults();       break;
+    }
+}
+
+// ─────────────────────────────────────────────
+// COVER
+// ─────────────────────────────────────────────
+function renderCover(){
+    container.innerHTML=`
+    <div class="page-wrapper fade-in">
+      <div class="flex flex-col items-center justify-center gap-[3vh] w-full max-w-[800px]">
+        <div class="w-[13vh] h-[13vh] bg-indigo-100 rounded-full flex items-center justify-center shadow-inner">
+          <i class="ph ph-pencil-simple-line text-[7vh] text-indigo-600"></i>
+        </div>
+        <div class="text-center">
+          <h1 class="text-fluid-xl font-bold text-gray-800 leading-tight">Test de coréen - A1.1</h1>
+          <p class="text-fluid-base text-indigo-600 font-semibold" style="margin-top:0.5vh;">Programmes évalués : Parler de soi & Parler des personnes et des objets</p>
+        </div>
+        <div class="w-full bg-indigo-50 border border-indigo-100 rounded-2xl flex flex-col gap-[1.5vmin]"
+             style="padding:clamp(1rem,2.5vmin,2rem);">
+          <div class="consigne-item text-fluid-xs text-gray-600">
+            <i class="ph ph-clock text-indigo-400 flex-shrink-0" style="font-size:clamp(0.9rem,2vmin,1.4rem);margin-top:0.1vh;"></i>
+            <span>Durée : <strong>30 minutes</strong>. Le temps restant est affiché en haut à droite.</span>
+          </div>
+          <div class="consigne-item text-fluid-xs text-gray-600">
+            <i class="ph ph-prohibit text-indigo-400 flex-shrink-0" style="font-size:clamp(0.9rem,2vmin,1.4rem);margin-top:0.1vh;"></i>
+            <span><strong>1 seule chance</strong> par question. Il est impossible de revenir en arrière une fois la question validée.</span>
+          </div>
+          <div class="consigne-item text-fluid-xs text-gray-600">
+            <i class="ph ph-microphone text-indigo-400 flex-shrink-0" style="font-size:clamp(0.9rem,2vmin,1.4rem);margin-top:0.1vh;"></i>
+            <span>Vérifiez que votre <strong>microphone</strong> et vos <strong>haut-parleurs</strong> sont activés avant de commencer.</span>
+          </div>
+          <div class="consigne-item text-fluid-xs text-gray-600">
+            <i class="ph ph-chart-bar text-indigo-400 flex-shrink-0" style="font-size:clamp(0.9rem,2vmin,1.4rem);margin-top:0.1vh;"></i>
+            <span>Le score détaillé par question s'affichera à la fin du test.</span>
+          </div>
+        </div>
+        <button onclick="startExam()"
+                class="px-[5vw] py-[2vh] bg-indigo-600 text-white rounded-full font-bold text-fluid-base shadow-lg hover:bg-indigo-700 transition transform hover:scale-105"
+                style="margin-top:1vh;">
+          Commencer le test
+        </button>
+      </div>
+    </div>`;
+}
+function startExam(){
+    initAudio().then(()=>{playPageTurnSound();startTimer();currentPage=1;renderPage();});
+}
+
+// ─────────────────────────────────────────────
+// MCQ
+// ─────────────────────────────────────────────
+function renderMCQ(page){
+    const saved=(pageAnswers[currentPage]||{});
+    const selected=saved.selectedIdx!==undefined?saved.selectedIdx:null;
+    const optHtml=page.options.map((opt,i)=>`
+      <button class="mcq-option text-fluid-sm ${selected===i?'selected':''}" id="opt-${i}" onclick="selectMCQ(${i})">
+        <span class="font-bold text-indigo-300 flex-shrink-0">${String.fromCharCode(65+i)}</span>
+        <span class="korean-text">${opt}</span>
+      </button>`).join('');
+    container.innerHTML=`
+    <div class="page-wrapper fade-in">
+      <div class="flex flex-col items-center w-full gap-[2vh]">
+        <p class="text-gray-500 font-bold uppercase tracking-widest text-fluid-sm">${page.instruction}</p>
+        ${page.question?`<div class="card-box py-[2.5vh]"><span class="text-fluid-lg font-bold text-indigo-900 korean-text">${page.question}</span></div>`:''}
+        <div class="flex flex-col items-center w-full gap-[1.5vh]">${optHtml}</div>
+      </div>
+    </div>`;
+    if(selected!==null)enableNext();else disableNext();
+}
+function selectMCQ(idx){
+    document.querySelectorAll('.mcq-option').forEach((el,i)=>el.classList.toggle('selected',i===idx));
+    if(!pageAnswers[currentPage])pageAnswers[currentPage]={};
+    pageAnswers[currentPage].selectedIdx=idx;
+    enableNext();
+}
+function scoreMCQ(page){
+    if(!pageAnswers[currentPage])pageAnswers[currentPage]={};
+    pageAnswers[currentPage].score=(pageAnswers[currentPage].selectedIdx===page.answer)?1:0;
+}
+
+// ─────────────────────────────────────────────
+// LISTENING
+// ─────────────────────────────────────────────
+function renderListening(page){
+    if(!pageAnswers[currentPage])pageAnswers[currentPage]={playsLeft:page.maxPlays};
+    const state=pageAnswers[currentPage];
+    if(state.playsLeft===undefined)state.playsLeft=page.maxPlays;
+    const selected=state.selectedIdx!==undefined?state.selectedIdx:null;
+    const disabled=state.playsLeft<=0;
+    const optHtml=page.options.map((opt,i)=>`
+      <button class="mcq-option text-fluid-sm ${selected===i?'selected':''}" id="opt-${i}" onclick="selectListening(${i})">
+        <span class="font-bold text-indigo-300 flex-shrink-0">${String.fromCharCode(65+i)}</span>
+        <span>${opt}</span>
+      </button>`).join('');
+    container.innerHTML=`
+    <div class="page-wrapper fade-in">
+      <div class="flex flex-col items-center w-full gap-[2vh]">
+        <p class="text-gray-500 font-bold uppercase tracking-widest text-fluid-sm">${page.instruction}</p>
+        <div class="flex flex-col items-center gap-[1vh]">
+          <button id="audio-btn" class="audio-play-btn ${disabled?'opacity-40 cursor-not-allowed':''}"
+                  onclick="playListeningAudio()" ${disabled?'disabled':''}>
+            <i class="ph ph-speaker-high" style="font-size:clamp(1rem,2.5vmin,1.8rem);"></i>
+            Écouter
+            <span id="plays-badge" class="ml-1 bg-indigo-200 text-indigo-800 font-bold rounded-full px-2 text-fluid-xs">${state.playsLeft}</span>
+          </button>
+        </div>
+        <p class="text-fluid-sm font-semibold text-gray-600" style="margin-top:0.5vh;">${page.question}</p>
+        <div class="flex flex-col items-center w-full gap-[1.5vh]">${optHtml}</div>
+      </div>
+    </div>`;
+    if(selected!==null)enableNext();else disableNext();
+}
+function playListeningAudio(){
+    const state=pageAnswers[currentPage];
+    if(!state||state.playsLeft<=0)return;
+    state.playsLeft--;
+    playAudio(pages[currentPage].audio);
+    const badge=document.getElementById('plays-badge');
+    if(badge)badge.innerText=state.playsLeft;
+    if(state.playsLeft<=0){
+        const btn=document.getElementById('audio-btn');
+        if(btn){btn.disabled=true;btn.classList.add('opacity-40','cursor-not-allowed');}
+    }
+}
+function selectListening(idx){
+    document.querySelectorAll('.mcq-option').forEach((el,i)=>el.classList.toggle('selected',i===idx));
+    pageAnswers[currentPage].selectedIdx=idx;
+    enableNext();
+}
+function scoreListening(page){
+    if(!pageAnswers[currentPage])pageAnswers[currentPage]={};
+    pageAnswers[currentPage].score=(pageAnswers[currentPage].selectedIdx===page.answer)?1:0;
+}
+
+// ─────────────────────────────────────────────
+// WRITING
+// ─────────────────────────────────────────────
+function renderWriting(page){
+    const saved=(pageAnswers[currentPage]||{});
+    const savedVal=saved.userText||'';
+    container.innerHTML=`
+    <div class="page-wrapper-writing fade-in">
+      <div class="flex flex-col items-center w-full gap-[2.5vh] max-w-[700px]">
+        <p class="text-gray-500 font-bold uppercase tracking-widest text-fluid-sm">${page.instruction}</p>
+        <div class="card-box py-[3vh]">
+          <span class="text-fluid-lg font-bold text-gray-800 korean-text">${page.question}</span>
+        </div>
+        <input id="write-input" class="write-input"
+               type="text" inputmode="text"
+               placeholder="한국어로 입력하세요"
+               value="${savedVal.replace(/"/g,'&quot;')}"
+               autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
+               oninput="onWriteInput(this.value)" />
+        <div id="write-feedback" class="text-fluid-sm font-medium flex items-center justify-center"
+             style="min-height:clamp(2.5vh,3.5vmin,4vh);"></div>
+      </div>
+    </div>`;
+    if(savedVal.trim())enableNext();else disableNext();
+    setTimeout(()=>{const inp=document.getElementById('write-input');if(inp)inp.focus();},300);
+}
+function onWriteInput(val){
+    if(!pageAnswers[currentPage])pageAnswers[currentPage]={};
+    pageAnswers[currentPage].userText=val;
+    if(val.trim())enableNext();else disableNext();
+}
+function scoreWriting(page){
+    if(!pageAnswers[currentPage])pageAnswers[currentPage]={};
+    const ans=pageAnswers[currentPage];
+    const raw=(ans.userText||'').trim();
+    // 유저 입력에 올바르지 않은 문장부호가 있으면 즉시 0점
+    // 허용: 마침표(.) 또는 없음. 불허: ?!,。！？등
+    const hasInvalidPunct = /[!?,。！？]/.test(raw);
+    if(hasInvalidPunct){ ans.score=0; ans.userText=raw; return; }
+    // 정답 비교 시 마침표 제거 후 비교 (있어도/없어도 동일 취급)
+    const norm=s=>s.replace(/[.。]/g,'').trim();
+    const user=norm(raw);
+
+    // Q14 special: subject present = 1pt, subject omitted = 0.5pt
+    if(page.specialScoring==='q14'){
+        for(const ref of page.fullAnswers){
+            if(calcSimilarity(user,norm(ref))>=0.85){ans.score=1;ans.userText=raw;return;}
+        }
+        for(const ref of page.halfAnswers){
+            if(calcSimilarity(user,norm(ref))>=0.85){ans.score=0.5;ans.userText=raw;return;}
+        }
+        ans.score=0;ans.userText=raw;return;
+    }
+
+    // Auto-expand acceptedAnswers with 입니다 variants
+    const baseAnswers=(page.acceptedAnswers||[page.answer]);
+    const expanded=[];
+    baseAnswers.forEach(ref=>{
+        expanded.push(ref);
+        const rn=norm(ref);
+        const r2=rn.replace(/예요$/,'입니다').replace(/이에요$/,'입니다');
+        if(r2!==rn)expanded.push(r2);
+    });
+    let best=0;
+    expanded.forEach(ref=>{
+        const sim=calcSimilarity(user,norm(ref));
+        if(sim>best)best=sim;
+    });
+    ans.score=best>=0.7?best:0;
+    ans.userText=raw;
+}
+function calcSimilarity(a,b){
+    if(a===b)return 1;if(!a||!b)return 0;
+    const la=a.length,lb=b.length;
+    const dp=Array.from({length:la+1},(_,i)=>Array.from({length:lb+1},(_,j)=>i===0?j:j===0?i:0));
+    for(let i=1;i<=la;i++)for(let j=1;j<=lb;j++)
+        dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+    return 1-dp[la][lb]/Math.max(la,lb);
+}
+
+// ─────────────────────────────────────────────
+// SPEAKING
+// ─────────────────────────────────────────────
+function renderSpeaking(page){
+    const saved=(pageAnswers[currentPage]||{});
+    const alreadyDone=saved.submitted;
+
+    if(page.mode==='gemini'){renderSpeakingGeminiUI(page,alreadyDone);return;}
+
+    const cardContent=page.isKorean
+        ?`<span class="text-fluid-xl font-bold text-indigo-900 korean-text">${page.prompt}</span>`
+        :`<span class="text-fluid-xl font-bold text-indigo-900">${page.prompt}</span>`;
+
+    const attemptsLabel=alreadyDone?''
+        :`<span class="text-fluid-xs text-gray-300">${page.maxAttempts>1?page.maxAttempts+' essais max':'1 seul essai'}</span>`;
+
+    container.innerHTML=`
+    <div class="page-wrapper fade-in">
+      <div class="flex flex-col items-center w-full gap-[3vh]">
+        <p class="text-gray-500 font-bold uppercase tracking-widest text-fluid-sm">${page.instruction}</p>
+        <div class="card-box py-[4vh]">${cardContent}</div>
+        <div class="flex flex-col items-center gap-[2vh]" style="min-height:clamp(14vh,18vmin,20vh);">
+          <button id="rec-btn"
+                  class="rec-btn-base bg-white border-4 border-gray-100 text-indigo-600 shadow-lg hover:border-indigo-200 hover:scale-105"
+                  style="width:clamp(7vh,12vmin,12vh);height:clamp(7vh,12vmin,12vh);"
+                  ${alreadyDone?'disabled':''}>
+            ${alreadyDone?`<i class="ph ph-check icon-fluid-md text-green-500"></i>`:`<i class="ph ph-microphone icon-fluid-lg"></i>`}
+          </button>
+          <div id="speak-feedback" class="text-fluid-sm font-medium text-gray-500 text-center"
+               style="min-height:clamp(4vh,6vmin,7vh);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5vh;">
+            ${alreadyDone?`<span class="text-green-500 font-bold">Enregistrement reçu ✓</span>`:`<span>Appuyez pour parler</span>${attemptsLabel}`}
+          </div>
+        </div>
+      </div>
+    </div>`;
+    if(alreadyDone){enableNext();return;}
+    disableNext();
+    setupClovaRecording(page);
+}
+
+function renderSpeakingGeminiUI(page,alreadyDone){
+    container.innerHTML=`
+    <div class="page-wrapper fade-in">
+      <div class="flex flex-col items-center w-full gap-[3vh]">
+        <p class="text-gray-500 font-bold uppercase tracking-widest text-fluid-sm">${page.instruction}</p>
+        <div class="card-box py-[4vh]">
+          <div class="flex items-center justify-center gap-[2vmin] w-full">
+            <div class="flex-shrink-0 bg-indigo-600 rounded-full flex items-center justify-center shadow"
+                 style="width:clamp(4vh,6vmin,6vh);height:clamp(4vh,6vmin,6vh);">
+              <i class="ph ph-user text-white" style="font-size:clamp(1.2rem,3vmin,2.5rem);"></i>
+            </div>
+            <button onclick="playAudio('${page.audioPrompt||''}')"
+                    class="audio-play-btn"
+                    style="padding:clamp(0.4rem,1vmin,0.8rem) clamp(0.8rem,2vmin,1.5rem);">
+              <i class="ph ph-speaker-high" style="font-size:clamp(1rem,2.5vmin,1.8rem);"></i>
+              Écouter la question
+            </button>
+          </div>
+        </div>
+        <div class="flex flex-col items-center gap-[2vh]" style="min-height:clamp(14vh,18vmin,20vh);">
+          <button id="rec-btn"
+                  class="rec-btn-base bg-white border-4 border-gray-100 text-indigo-600 shadow-lg hover:border-indigo-200 hover:scale-105"
+                  style="width:clamp(7vh,12vmin,12vh);height:clamp(7vh,12vmin,12vh);"
+                  ${alreadyDone?'disabled':''}>
+            ${alreadyDone?`<i class="ph ph-check icon-fluid-md text-green-500"></i>`:`<i class="ph ph-microphone icon-fluid-lg"></i>`}
+          </button>
+          <div id="speak-feedback" class="text-fluid-sm font-medium text-gray-500 text-center"
+               style="min-height:clamp(4vh,6vmin,7vh);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5vh;">
+            ${alreadyDone?`<span class="text-green-500 font-bold">Enregistrement reçu ✓</span>`:`<span>Appuyez pour répondre</span><span class="text-fluid-xs text-gray-300">1 seul essai</span>`}
+          </div>
+        </div>
+      </div>
+    </div>`;
+    // Auto-play question audio on load (after pageTurnSound ends ~100ms)
+    if(page.audioPrompt && page.audioPrompt !== 'PLACEHOLDER_Q20_AUDIO'){
+        autoPlayTimer=setTimeout(()=>playAudio(page.audioPrompt),400);
+    }
+    if(alreadyDone){enableNext();return;}
+    disableNext();
+    setupGeminiRecording(page);
+}
+
+// ── Clova recording ───────────────────────────
+function setupClovaRecording(page){
+    const btn=document.getElementById('rec-btn');
+    const fb=document.getElementById('speak-feedback');
+    if(!pageAnswers[currentPage])pageAnswers[currentPage]={attemptsUsed:0};
+    const state=pageAnswers[currentPage];
+
+    btn.onclick=async()=>{
+        if(isRecording){clearTimeout(recordingTimeout);stopSpeakRecording(btn,fb);return;}
+        if(state.attemptsUsed>=page.maxAttempts){return;}
+        try{
+            await initAudio();
+            const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+            mediaRecorder=new MediaRecorder(stream);
+            audioChunks=[];
+            mediaRecorder.ondataavailable=e=>audioChunks.push(e.data);
+            mediaRecorder.onstop=async()=>{
+                const blob=new Blob(audioChunks,{type:'audio/webm'});
+                const reader=new FileReader();
+                reader.readAsDataURL(blob);
+                reader.onloadend=async()=>{
+                    const b64=reader.result.split(',')[1];
+                    state.attemptsUsed=(state.attemptsUsed||0)+1;
+                    const attLeft=page.maxAttempts-state.attemptsUsed;
+                    if(attLeft<=0)btn.disabled=true;
+                    fb.innerHTML=`<span class="text-indigo-400">Analyse en cours…</span>`;
+                    await processClovaSpeech(b64,page.referenceTexts,fb,page,btn);
+                };
+                stream.getTracks().forEach(t=>t.stop());
+            };
+            mediaRecorder.start();isRecording=true;
+            btn.classList.add('recording-pulse','bg-red-500','text-white','border-red-500');
+            btn.classList.remove('bg-white','text-indigo-600','border-gray-100');
+            btn.innerHTML=`<i class="ph ph-stop icon-fluid-md"></i>`;
+            fb.innerHTML=`<span class="text-red-500 font-bold">Enregistrement…</span>`;
+            recordingTimeout=setTimeout(()=>{if(isRecording)stopSpeakRecording(btn,fb);},6000);
+        }catch(err){
+            console.error(err);
+            fb.innerHTML=`<span class="text-red-400">Accès au micro refusé.</span>`;
+        }
+    };
+}
+
+function stopSpeakRecording(btn,fb){
+    if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop();
+    clearTimeout(recordingTimeout);isRecording=false;
+    btn.classList.remove('recording-pulse','bg-red-500','text-white','border-red-500');
+    btn.classList.add('bg-white','text-indigo-600','border-gray-100');
+    btn.innerHTML=`<i class="ph ph-microphone icon-fluid-lg"></i>`;
+}
+
+async function processClovaSpeech(b64,referenceTexts,fbEl,page,btnEl){
+    try{
+        const res=await fetch(CLOVA_API_URL,{
+            method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({audioBase64:b64,languageCode:"Kor",assessment:false})
+        });
+        if(!res.ok)throw new Error("API Error");
+        const data=await res.json();
+        const recognized=(data.text||'').trim();
+        const norm=s=>s.replace(/[.!?,。！？]/g,'').trim();
+        let best=0;
+        (referenceTexts||[]).forEach(ref=>{
+            const sim=calcSimilarity(norm(recognized),norm(ref));
+            if(sim>best)best=sim;
+        });
+        // Tiered scoring: <60%=0, 60-80%=0.5, 80-90%=0.7, >=90%=1
+        let tierScore=0;
+        if(best>=0.9)tierScore=1;
+        else if(best>=0.8)tierScore=0.7;
+        else if(best>=0.6)tierScore=0.5;
+
+        if(!pageAnswers[currentPage])pageAnswers[currentPage]={};
+        const state=pageAnswers[currentPage];
+        const attLeft=page.maxAttempts-(state.attemptsUsed||0);
+
+        if(tierScore>0){
+            state.score=tierScore;state.submitted=true;
+            btnEl.disabled=true;
+            btnEl.innerHTML=`<i class="ph ph-check icon-fluid-md text-green-500"></i>`;
+            fbEl.innerHTML=`<span class="text-green-500 font-bold">Enregistrement reçu ✓</span>`;
+            playSuccessSound();
+            enableNext();
+        } else if(attLeft<=0){
+            state.score=0;state.submitted=true;
+            fbEl.innerHTML=`<span class="text-orange-400">Essais épuisés.</span>`;
+            enableNext();
+        } else {
+            fbEl.innerHTML=`<span class="text-orange-400">Réessayez. (${attLeft} essai${attLeft>1?'s':''} restant${attLeft>1?'s':''})</span>`;
+            btnEl.disabled=false;
+        }
+    }catch(e){
+        console.error(e);
+        if(!pageAnswers[currentPage])pageAnswers[currentPage]={};
+        pageAnswers[currentPage].score=0;pageAnswers[currentPage].submitted=true;
+        fbEl.innerHTML=`<span class="text-orange-400">Erreur serveur.</span>`;
+        enableNext();
+    }
+}
+
+// ── Gemini recording ──────────────────────────
+const GEMINI_SYSTEM_INSTRUCTION=
+    "다음 발화가 \"직업이 뭐예요?\"에 대한 정답으로 적절한 한국어 문장인지 평가하고 0-1의 숫자로만 회신한다. 완벽한 답이면 1, 내용을 이해할 수 있지만 문법 오류가 있거나 단어가 명확하지 않은 경우 0.5, 질문에 대한 적절한 답이 아닌 경우 0에 해당한다.";
+
+function setupGeminiRecording(page){
+    const btn=document.getElementById('rec-btn');
+    const fb=document.getElementById('speak-feedback');
+
+    btn.onclick=async()=>{
+        if(isRecording){clearTimeout(recordingTimeout);stopSpeakRecording(btn,fb);return;}
+        try{
+            await initAudio();
+            const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+            mediaRecorder=new MediaRecorder(stream);
+            audioChunks=[];
+            mediaRecorder.ondataavailable=e=>{if(e.data.size>0)audioChunks.push(e.data);};
+            mediaRecorder.onstop=async()=>{
+                const blob=new Blob(audioChunks,{type:'audio/webm'});
+                stream.getTracks().forEach(t=>t.stop());
+                btn.disabled=true;
+                fb.innerHTML=`<span class="text-indigo-400">Analyse en cours…</span>`;
+                await processGeminiSpeech(blob,fb);
+            };
+            mediaRecorder.start();isRecording=true;
+            btn.classList.add('recording-pulse','bg-red-500','text-white','border-red-500');
+            btn.classList.remove('bg-white','text-indigo-600','border-gray-100');
+            btn.innerHTML=`<i class="ph ph-stop icon-fluid-md"></i>`;
+            fb.innerHTML=`<span class="text-red-500 font-bold">Enregistrement…</span>`;
+            recordingTimeout=setTimeout(()=>{if(isRecording)stopSpeakRecording(btn,fb);},6000);
+        }catch(err){
+            console.error(err);
+            fb.innerHTML=`<span class="text-red-400">Accès au micro refusé.</span>`;
+        }
+    };
+}
+
+async function processGeminiSpeech(blob,fbEl){
+    try{
+        const reader=new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend=async()=>{
+            const base64data=reader.result.split(',')[1];
+            const mimeType=blob.type?blob.type.split(';')[0]:'audio/webm';
+            try{
+                const res=await fetch(GEMINI_API_URL,{
+                    method:'POST',headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({
+                        contents:[{role:"user",parts:[{inlineData:{mimeType,data:base64data}}]}],
+                        systemInstruction:GEMINI_SYSTEM_INSTRUCTION,
+                        model:"gemini-2.5-flash"
+                    })
+                });
+                if(!res.ok)throw new Error(`API ${res.status}`);
+                const result=await res.json();
+                const rawText=(result.text||'').trim();
+                const score=parseFloat(rawText.replace(/[^0-9.]/g,''))||0;
+                if(!pageAnswers[currentPage])pageAnswers[currentPage]={};
+                pageAnswers[currentPage].score=Math.min(1,Math.max(0,score));
+                pageAnswers[currentPage].submitted=true;
+                fbEl.innerHTML=`<span class="text-green-500 font-bold">Enregistrement reçu ✓</span>`;
+                enableNext();
+            }catch(apiErr){
+                console.error("Gemini API Error",apiErr);
+                if(!pageAnswers[currentPage])pageAnswers[currentPage]={};
+                pageAnswers[currentPage].score=0;pageAnswers[currentPage].submitted=true;
+                fbEl.innerHTML=`<span class="text-orange-400">Erreur serveur.</span>`;
+                enableNext();
+            }
+        };
+    }catch(err){
+        console.error(err);
+        if(!pageAnswers[currentPage])pageAnswers[currentPage]={};
+        pageAnswers[currentPage].score=0;pageAnswers[currentPage].submitted=true;
+        fbEl.innerHTML=`<span class="text-orange-400">Erreur de traitement.</span>`;
+        enableNext();
+    }
+}
+
+// ─────────────────────────────────────────────
+// RESULTS — per-question score rows
+// ─────────────────────────────────────────────
+function renderResults(){
+    clearInterval(timerInterval);
+    footer.classList.add('hidden');header.classList.add('hidden');
+
+    let total=0;
+    const questionPages=pages.slice(1,TOTAL_QUESTIONS+1);
+    questionPages.forEach((_,i)=>{total+=((pageAnswers[i+1]||{}).score||0);});
+    total=Math.round(total*10)/10;
+    const pct=total/MAX_SCORE;
+    const grade=pct>=0.9?"Excellent !":pct>=0.75?"Très bien !":pct>=0.6?"Assez bien.":"À revoir.";
+    const scoreColor=pct>=0.8?'text-green-600':pct>=0.6?'text-indigo-600':'text-orange-500';
+
+    const typeLabel=t=>t==='mcq'?'QCM':t==='listening'?'Écoute':t==='writing'?'Écriture':'Expression orale';
+
+    const rowsHtml=questionPages.map((p,i)=>{
+        const sc=Math.round(((pageAnswers[i+1]||{}).score||0)*100)/100;
+        const isGreen=sc>=1;
+        const isBlue=sc>0&&sc<1;
+        const rowCls=isGreen?'score-row-green':isBlue?'score-row-blue':'score-row-red';
+        const iconCls=isGreen?'ph-check-circle text-green-500':isBlue?'ph-minus-circle text-blue-500':'ph-x-circle text-red-400';
+        const scoreTxtCls=isGreen?'text-green-600 font-bold':isBlue?'text-blue-600 font-bold':'text-red-500 font-bold';
+        const scoreTxt=isGreen?'1 / 1':isBlue?`${sc} / 1`:'0 / 1';
+        return `
+        <div class="score-row ${rowCls}">
+          <div class="flex items-center gap-[1.5vmin]">
+            <i class="ph ${iconCls}" style="font-size:clamp(1rem,2.2vmin,1.6rem);flex-shrink:0;"></i>
+            <span class="text-fluid-xs text-gray-600 font-semibold">Q${p.qNum}<span class="font-normal text-gray-400"> — ${typeLabel(p.type)}</span></span>
+          </div>
+          <span class="text-fluid-xs ${scoreTxtCls}">${scoreTxt}</span>
+        </div>`;
+    }).join('');
+
+    container.innerHTML=`
+    <div class="page-wrapper fade-in">
+      <div class="flex flex-col items-center w-full gap-[2vh] max-w-[700px]" style="height:100%;justify-content:center;">
+        <div class="flex flex-col items-center gap-[0.8vh]">
+          <div style="width:clamp(10vh,14vmin,14vh);height:clamp(10vh,14vmin,14vh);background:#eef2ff;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:inset 0 2px 8px rgba(0,0,0,0.08);">
+            <span class="text-fluid-xl font-black ${scoreColor}">${total}</span>
+            <span class="text-fluid-xs text-gray-400 font-semibold">/ ${MAX_SCORE}</span>
+          </div>
+          <span class="text-fluid-lg font-bold text-gray-700">${grade}</span>
+        </div>
+        <div class="w-full flex flex-col gap-[0.8vh]" style="overflow-y:auto;max-height:52vh;">
+          ${rowsHtml}
+        </div>
+        <button onclick="restartTest()" class="px-[4vw] py-[1.5vh] bg-indigo-600 text-white rounded-full font-bold text-fluid-sm hover:bg-indigo-700 transition">
+          Recommencer le test
+        </button>
+      </div>
+    </div>`;
+
+    initAudio().then(()=>{
+        if(completionSynth)completionSynth.triggerAttackRelease(["C5","E5","G5","C6"],"4n");
+        if(window.parent){
+            window.parent.postMessage({type:'test_complete',score:total,maxScore:MAX_SCORE},'*');
+            window.parent.postMessage('lessonCompleted','*');
+        }
+    });
+}
+
+function restartTest(){
+    Object.keys(pageAnswers).forEach(k=>delete pageAnswers[k]);
+    clearInterval(timerInterval);
+    timeRemaining=EXAM_DURATION_SEC;timerStarted=false;
+    currentPage=0;isRecording=false;
+    renderPage();
+}
+
+// ─────────────────────────────────────────────
+// NAVIGATION
+// ─────────────────────────────────────────────
+function nextPage(){
+    if(!audioCtxInited)initAudio();
+    playPageTurnSound();
+    const page=pages[currentPage];
+    if(page.type==='mcq')      scoreMCQ(page);
+    if(page.type==='listening')scoreListening(page);
+    if(page.type==='writing')  scoreWriting(page);
+    if(currentPage<pages.length-1){currentPage++;renderPage();}
+}
+btnNext.addEventListener('click',nextPage);
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+renderPage();
+</script>
+</body>
+</html>
