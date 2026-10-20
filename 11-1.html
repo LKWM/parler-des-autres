@@ -436,18 +436,18 @@
                         
                         <div class="w-full flex flex-col items-center shrink-0 pt-2 space-y-4 bg-white z-20 hint-area overflow-y-auto" style="max-height: 50%;">
                             
-                            <div id="qtext-block" class="invisible w-full flex flex-col items-center gap-1 mb-2">
+                            <div id="qtext-block" class="hidden w-full flex flex-col items-center gap-1 mb-2">
                                 <div class="flex items-center justify-center gap-2 w-full px-2">
-                                    <button id="q-audio-btn" onclick="playAudio('${data.qAudio}')" class="invisible w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors shadow-sm shrink-0"><i class="ph ph-speaker-high text-lg"></i></button>
+                                    <button id="q-audio-btn" onclick="playAudio('${data.qAudio}')" class="hidden w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors shadow-sm shrink-0"><i class="ph ph-speaker-high text-lg"></i></button>
                                     <h2 class="text-xl font-bold text-gray-800 text-center leading-snug">${data.qText}</h2>
                                 </div>
-                                <p id="q-trans" class="invisible text-sm text-gray-500 text-center px-4">${data.qTrans}</p>
+                                <p id="q-trans" class="hidden text-sm text-gray-500 text-center px-4">${data.qTrans}</p>
                             </div>
 
-                            <div class="text-center w-full space-y-2">
-                                <p id="hint1" class="invisible text-lg text-indigo-600 font-medium bg-indigo-50 px-4 py-2 rounded-lg inline-block">${data.hint1}</p>
-                                <p id="hint2" class="invisible text-lg text-orange-600 font-medium bg-orange-50 px-4 py-2 rounded-lg inline-block">Mot clé : ${data.hint2}</p>
-                                <div id="hint3" class="invisible flex items-center justify-center gap-2">
+                            <div id="hints-wrap" class="text-center w-full space-y-2">
+                                <p id="hint1" class="hidden text-lg text-indigo-600 font-medium bg-indigo-50 px-4 py-2 rounded-lg inline-block">${data.hint1}</p>
+                                <p id="hint2" class="hidden text-lg text-orange-600 font-medium bg-orange-50 px-4 py-2 rounded-lg inline-block">Mot clé : ${data.hint2}</p>
+                                <div id="hint3" class="hidden flex items-center justify-center gap-2">
                                     ${data.aAudio ? `
                                         <button id="a-audio-btn" onclick="playAudio('${data.aAudio}')" class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition-colors">
                                             <i class="ph ph-speaker-high text-lg"></i>
@@ -457,10 +457,7 @@
                                 </div>
                             </div>
                                 
-                            <div id="feedback-msg" class="relative h-10 w-full text-center flex flex-col items-center justify-center gap-0.5 overflow-hidden">
-                                <span id="fb-msg"></span>
-                                <span id="fb-score" class="text-gray-400 text-xs line-clamp-2 invisible"></span>
-                            </div>
+                            <div id="feedback-msg" class="min-h-6 w-full text-center text-sm font-bold flex flex-col items-center gap-0.5"></div>
 
                         </div>
 
@@ -494,39 +491,32 @@
 
             const show = (id, visible) => {
                 const el = document.getElementById(id);
-                if (el) el.classList.toggle('invisible', !visible);
+                if (el) el.classList.toggle('hidden', !visible);
             };
 
             show('qtext-block', showQText);
             show('q-audio-btn', showQAudioBtn);
+            const hintsWrap = document.getElementById('hints-wrap');
+            if (hintsWrap) hintsWrap.style.marginTop = showQText ? '' : '0';
             show('q-trans', showQTrans);
             show('hint1', showHint1);
             show('hint2', showHint2);
             show('hint3', showHint3);
 
-            const msgEl = document.getElementById('fb-msg');
-            const scoreEl = document.getElementById('fb-score');
-            if (msgEl && scoreEl) {
-                if (state.passed) {
-                    msgEl.className = 'text-green-600 text-sm font-bold';
-                    msgEl.textContent = 'Très bien. Passons à la question suivante.';
-                } else if (state.attempts >= 3) {
-                    msgEl.className = 'text-green-600 text-sm font-bold';
-                    msgEl.textContent = 'Passons à la question suivante.';
-                } else if (state.attempts > 0) {
-                    msgEl.className = 'text-orange-500 text-sm font-bold';
-                    msgEl.textContent = 'Vous y êtes presque. Essayez encore une fois.';
-                } else {
-                    msgEl.className = '';
-                    msgEl.textContent = '';
-                }
+            const scoreInfo = state.attempts > 0
+                ? `<span class="text-gray-400 text-xs">"${state.lastText || ''}" (${state.lastScore ?? '?'})</span>`
+                : '';
 
-                if (state.attempts > 0) {
-                    scoreEl.textContent = `"${state.lastText || ''}" (${state.lastScore ?? '?'})`;
-                    scoreEl.classList.remove('invisible');
+            const feedbackMsg = document.getElementById('feedback-msg');
+            if (feedbackMsg) {
+                if (state.passed) {
+                    feedbackMsg.innerHTML = `<span class="text-green-600">Très bien. Passons à la question suivante.</span>${scoreInfo}`;
+                } else if (state.attempts >= 3) {
+                    feedbackMsg.innerHTML = `<span class="text-green-600">Passons à la question suivante.</span>${scoreInfo}`;
+                } else if (state.attempts > 0) {
+                    feedbackMsg.innerHTML = `<span class="text-orange-500">Vous y êtes presque. Essayez encore une fois.</span>${scoreInfo}`;
                 } else {
-                    scoreEl.textContent = '';
-                    scoreEl.classList.add('invisible');
+                    feedbackMsg.innerHTML = '';
                 }
             }
 
@@ -534,17 +524,13 @@
             if (recordBtn && (state.passed || state.attempts >= 3)) {
                 recordBtn.disabled = true;
                 recordBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                recordBtn.innerHTML = `<i class="ph ph-microphone text-2xl"></i>`;
             }
         }
 
         function setQuestionStatus(text, cls) {
-            const msgEl = document.getElementById('fb-msg');
-            const scoreEl = document.getElementById('fb-score');
+            const msgEl = document.getElementById('feedback-msg');
             if (!msgEl) return;
-            msgEl.className = cls;
-            msgEl.textContent = text;
-            if (scoreEl) scoreEl.classList.add('invisible');
+            msgEl.innerHTML = `<p class="${cls}">${text}</p>`;
         }
 
         // --- Recording Logic ---
@@ -581,8 +567,8 @@
                         if (recordBtn) {
                             const st = getExerciseState(currentIndex);
                             if (!st.passed && st.attempts < 3) {
-                                recordBtn.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
-                                recordBtn.classList.add('bg-red-50', 'text-red-500');
+                                recordBtn.classList.remove('bg-red-500', 'text-white', 'ring-red-200');
+                                recordBtn.classList.add('bg-red-50', 'text-red-500', 'hover:bg-red-100');
                                 recordBtn.innerHTML = `<i class="ph ph-microphone text-2xl"></i>`;
                             }
                         }
@@ -593,8 +579,8 @@
                     isRecording = true;
                     
                     if (recordBtn) {
-                        recordBtn.classList.remove('bg-red-50', 'text-red-500');
-                        recordBtn.classList.add('bg-red-500', 'text-white', 'animate-pulse');
+                        recordBtn.classList.remove('bg-red-50', 'text-red-500', 'hover:bg-red-100');
+                        recordBtn.classList.add('bg-red-500', 'text-white', 'ring-red-200');
                         recordBtn.innerHTML = `<i class="ph ph-stop text-2xl"></i>`;
                     }
                     setQuestionStatus('Enregistrement...', 'text-indigo-600 animate-pulse text-xs');
@@ -618,8 +604,8 @@
                 } else {
                     isRecording = false;
                     if (recordBtn) {
-                        recordBtn.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
-                        recordBtn.classList.add('bg-red-50', 'text-red-500');
+                        recordBtn.classList.remove('bg-red-500', 'text-white', 'ring-red-200');
+                        recordBtn.classList.add('bg-red-50', 'text-red-500', 'hover:bg-red-100');
                         recordBtn.innerHTML = `<i class="ph ph-microphone text-2xl"></i>`;
                     }
                 }

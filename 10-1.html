@@ -666,8 +666,8 @@
                     const feedbackArea = document.getElementById('feedback-area');
 
                     if (recordBtn) {
-                        recordBtn.classList.remove('bg-red-50', 'text-red-500');
-                        recordBtn.classList.add('bg-red-500', 'text-white', 'animate-pulse');
+                        recordBtn.classList.remove('bg-red-50', 'text-red-500', 'hover:bg-red-100');
+                        recordBtn.classList.add('bg-red-500', 'text-white', 'ring-red-200');
                         const iconSize = mode === 'multi_step' ? 'text-lg' : 'text-xl';
                         recordBtn.innerHTML = `<i class="ph ph-stop ${iconSize}"></i>`;
                     }
@@ -681,8 +681,8 @@
                             isRecording = false;
                             
                             if (document.contains(recordBtn)) {
-                                recordBtn.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
-                                recordBtn.classList.add('bg-red-50', 'text-red-500');
+                                recordBtn.classList.remove('bg-red-500', 'text-white', 'ring-red-200');
+                                recordBtn.classList.add('bg-red-50', 'text-red-500', 'hover:bg-red-100');
                                 const iconSize = mode === 'multi_step' ? 'text-lg' : 'text-xl';
                                 recordBtn.innerHTML = `<i class="ph ph-microphone ${iconSize}"></i>`;
                             }
@@ -702,8 +702,8 @@
                 const feedbackArea = document.getElementById('feedback-area');
 
                 if (recordBtn) {
-                    recordBtn.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
-                    recordBtn.classList.add('bg-red-50', 'text-red-500');
+                    recordBtn.classList.remove('bg-red-500', 'text-white', 'ring-red-200');
+                    recordBtn.classList.add('bg-red-50', 'text-red-500', 'hover:bg-red-100');
                     const iconSize = mode === 'multi_step' ? 'text-lg' : 'text-xl';
                     recordBtn.innerHTML = `<i class="ph ph-microphone ${iconSize}"></i>`;
                 }
