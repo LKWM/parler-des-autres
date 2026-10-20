@@ -675,7 +675,7 @@
             else state.stepAttempts++; 
 
             try {
-                const systemInstruction = "Transcribe this audio in Korean. Do not add any comment, just transcribe";
+                const systemInstruction = "유저의 발화값을 한글로 전사하라.";
                 const recognizedText = await sendToGemini(audioBase64, systemInstruction);
 
                 state.lastText = recognizedText; 
