@@ -106,7 +106,7 @@
                 instruction: "Présentez vous-même la personne en coréen.",
                 systemInstruction: `
 Prénom: Jiyeon / Métier: Médecin / Nationalité: Américaine - 이 인물을 한국어로 설명하는 과제에 대한 유저 응답을 평가합니다.
-응답 세 부분으로 구성되며, 각 부분을 시작할 때 [Transcription], [Score], [Explication] 이라는 태그로 시작합니다. 세 가지 외 다른 항목은 절대 출력하지 않습니다.
+응답 세 부분으로 구성되며, 각 부분을 시작할 때 [Transcription], [Score], [Explication] 이라는 태그로 시작합니다. 세 가지 외 다른 항목은 절대 출력하지 않습니다. 이 문제의 예시 정답 (20점)은 다음과 같습니다: 이 사람은 지연 씨예요. 지연 씨는 의사예요. 지연 씨는 미국 사람이에요.
 [Transcription] 들은 내용을 그대로 한국어로 전사.
 [Score] 이름, 직업, 국적을 모두 오류없이 발화하면 20점 만점입니다. 주어를 생략하거나 기댓값과 약간 다르다고 해도 문법 오류가 없이 자연스러운 한국어로 말하면 18점 이상에 해당합니다. 문법 오류 (조사 생략, ‘씨’ 생략, 이에요/입니다/이야 간 문체 혼용) 또는 어색한 표현마다 감점합니다. 부족한 부분이 있지만 이해에 문제가 없는 경우 14점 이상, 세가지 중 두 가지 이상을 제대로 말하지 못한 경우 10점 미만, 발화 내용을 이해하기 어려운 경우 5점 미만에 해당합니다.
 [Explication] Expliquez simplement et clairement les erreurs en français. Si vous citez du coréen, utilisez uniquement le hangeul. ".
