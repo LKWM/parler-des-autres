@@ -210,8 +210,15 @@
 // CONFIG
 // ─────────────────────────────────────────────
 const BASE_44_ORIGIN    = "https://coreeno.base44.app";
-const CLOVA_API_URL     = BASE_44_ORIGIN + '/api/functions/naverClovaSpeech';
-const GEMINI_API_URL    = BASE_44_ORIGIN + '/api/functions/Geminichat';
+const GEMINI_STT_URL  = BASE_44_ORIGIN + '/functions/GeminiChatSecure';
+const GEMINI_EVAL_URL = BASE_44_ORIGIN + '/functions/GeminiChatSecure';
+let lessonPermit = null;
+let lessonId = null;
+window.addEventListener('message', (event) => {
+    if (event.data?.type !== "coreeno:permit") return;
+    lessonPermit = event.data.permit;
+    lessonId = event.data.lesson_id;
+});
 const EXAM_DURATION_SEC = 30 * 60;
 
 // ─────────────────────────────────────────────
@@ -972,9 +979,11 @@ function stopSpeakRecording(btn,fb){
 
 async function processClovaSpeech(b64,referenceTexts,fbEl,page,btnEl){
     try{
-        const res=await fetch(CLOVA_API_URL,{
+        if(!lessonPermit||!lessonId)throw new Error('Lesson permit is not available yet.');
+        const payload = { contents:[{role:"user",parts:[{inline_data:{mime_type:"audio/webm",data:b64}}]}] };
+        const res=await fetch(GEMINI_STT_URL,{
             method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({audioBase64:b64,languageCode:"Kor",assessment:false})
+            body:JSON.stringify({...payload, systemInstruction:"유저 발화를 한글로 전사하시오.", model:"gemini-3.5-flash-lite", permit:lessonPermit, lesson_id:lessonId})
         });
         if(!res.ok)throw new Error("API Error");
         const data=await res.json();
@@ -1063,12 +1072,15 @@ async function processGeminiSpeech(blob,fbEl){
             const base64data=reader.result.split(',')[1];
             const mimeType=blob.type?blob.type.split(';')[0]:'audio/webm';
             try{
-                const res=await fetch(GEMINI_API_URL,{
+                if(!lessonPermit||!lessonId)throw new Error('Lesson permit is not available yet.');
+                const res=await fetch(GEMINI_EVAL_URL,{
                     method:'POST',headers:{'Content-Type':'application/json'},
                     body:JSON.stringify({
-                        contents:[{role:"user",parts:[{inlineData:{mimeType,data:base64data}}]}],
+                        contents:[{role:"user",parts:[{inline_data:{mime_type:mimeType,data:base64data}}]}],
                         systemInstruction:GEMINI_SYSTEM_INSTRUCTION,
-                        model:"gemini-2.5-flash"
+                        model:"gemini-3.5-flash-lite",
+                        permit:lessonPermit,
+                        lesson_id:lessonId
                     })
                 });
                 if(!res.ok)throw new Error(`API ${res.status}`);

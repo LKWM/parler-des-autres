@@ -80,7 +80,15 @@
     </div>
 
     <script>
-        const GEMINI_FUNCTION_URL = "https://coreeno.base44.app/api/apps/69021ec9e4512a451556d88d/functions/Geminichat";
+        const GEMINI_FUNCTION_URL = "https://coreeno.base44.app/functions/GeminiChatSecure";
+
+        let lessonPermit = null;
+        let lessonId = null;
+        window.addEventListener('message', (event) => {
+            if (event.data?.type !== "coreeno:permit") return;
+            lessonPermit = event.data.permit;
+            lessonId = event.data.lesson_id;
+        });
 
         // --- Data & State Management ---
         const assessmentResults = {}; 
@@ -402,16 +410,16 @@ Prénom: Jiyeon / Métier: Médecin / Nationalité: Américaine - 이 인물을 
         }
 
         async function sendToGemini(base64Audio, systemInstruction, statusEl) {
+            if (!lessonPermit || !lessonId) throw new Error('Lesson permit is not available yet.');
             try {
                 const payload = {
-                    model: "gemini-2.5-flash",
+                    model: "gemini-3.5-flash-lite",
                     systemInstruction: systemInstruction,
                     contents: [
                         {
                             role: "user",
                             parts: [
-                                { text: "Audio input for evaluation" },
-                                { 
+                                    { 
                                     inline_data: { 
                                         mime_type: "audio/webm", 
                                         data: base64Audio 
@@ -425,7 +433,7 @@ Prénom: Jiyeon / Métier: Médecin / Nationalité: Américaine - 이 인물을 
                 const response = await fetch(GEMINI_FUNCTION_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({ ...payload, permit: lessonPermit, lesson_id: lessonId })
                 });
 
                 if (!response.ok) {

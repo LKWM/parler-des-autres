@@ -93,7 +93,15 @@
     </div>
 
     <script>
-        const GEMINI_FUNCTION_URL = "https://coreeno.base44.app/api/apps/69021ec9e4512a451556d88d/functions/Geminichat";
+        const GEMINI_FUNCTION_URL = "https://coreeno.base44.app/functions/GeminiChatSecure";
+
+        let lessonPermit = null;
+        let lessonId = null;
+        window.addEventListener('message', (event) => {
+            if (event.data?.type !== "coreeno:permit") return;
+            lessonPermit = event.data.permit;
+            lessonId = event.data.lesson_id;
+        });
 
         // --- Data & State Management ---
         const exerciseStates = {}; 
@@ -260,14 +268,14 @@
 
         // --- Gemini Speech Recognition ---
         async function sendToGemini(base64Audio, systemInstruction) {
+            if (!lessonPermit || !lessonId) throw new Error('Lesson permit is not available yet.');
             const payload = {
-                model: "gemini-2.5-flash",
+                model: "gemini-3.5-flash-lite",
                 systemInstruction: systemInstruction,
                 contents: [
                     {
                         role: "user",
                         parts: [
-                            { text: "Audio input for evaluation" },
                             { 
                                 inline_data: { 
                                     mime_type: "audio/webm", 
@@ -282,7 +290,7 @@
             const res = await fetch(GEMINI_FUNCTION_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ ...payload, permit: lessonPermit, lesson_id: lessonId })
             });
 
             if (!res.ok) throw new Error("Gemini API Error: " + res.status);

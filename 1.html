@@ -89,7 +89,14 @@
 
     <script>
         const BASE_44_ORIGIN = "https://coreeno.base44.app"; 
-        const CLOVA_API_FUNCTION_URL = BASE_44_ORIGIN + '/api/functions/naverClovaSpeech';
+        const GEMINI_URL = BASE_44_ORIGIN + '/functions/GeminiChatSecure';
+        let lessonPermit = null;
+        let lessonId = null;
+        window.addEventListener('message', (event) => {
+            if (event.data?.type !== "coreeno:permit") return;
+            lessonPermit = event.data.permit;
+            lessonId = event.data.lesson_id;
+        });
 
         // --- Data & State Management ---
         
@@ -492,6 +499,7 @@
             `;
 
             const listenBtn = document.getElementById('listen-btn');
+            playAutoAudioIfNeeded(data.refAudio);
             const recordBtn = document.getElementById('record-btn');
             const feedbackArea = document.getElementById('feedback-area');
 
@@ -594,16 +602,20 @@
 
             try {
                 // Correct payload with referenceText as required by backend
+                if (!lessonPermit || !lessonId) throw new Error('Lesson permit is not available yet.');
                 const payload = { 
-                    audioBase64: audioBase64, 
-                    languageCode: "Kor", 
-                    referenceText: referenceText 
+                    contents: [{
+                        role: "user",
+                        parts: [
+                            { inline_data: { mime_type: "audio/webm", data: audioBase64 } }
+                        ]
+                    }]
                 };
 
-                const res = await fetch(CLOVA_API_FUNCTION_URL, {
+                const res = await fetch(GEMINI_URL, {
                     method: 'POST', 
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({ ...payload, systemInstruction: "유저 발화를 한글로 전사하시오.", model: "gemini-3.5-flash-lite", permit: lessonPermit, lesson_id: lessonId })
                 });
 
                 if (!res.ok) throw new Error("API Error: " + res.status); 
