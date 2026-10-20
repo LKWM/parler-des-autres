@@ -183,7 +183,7 @@ Prénom: Jiyeon / Métier: Médecin / Nationalité: Américaine - 이 인물을 
             const progress = ((currentIndex) / (lessonData.length - 1)) * 100;
             progressBar.style.width = `${progress}%`;
             
-            if (currentIndex === 0) prevBtn.classList.add('invisible');
+            if (currentIndex <= 1) prevBtn.classList.add('invisible');
             else {
                 prevBtn.classList.remove('invisible');
                 prevBtn.disabled = false;
@@ -410,8 +410,8 @@ Prénom: Jiyeon / Métier: Médecin / Nationalité: Américaine - 이 인물을 
         }
 
         async function sendToGemini(base64Audio, systemInstruction, statusEl) {
-            if (!lessonPermit || !lessonId) throw new Error('Lesson permit is not available yet.');
             try {
+                if (!lessonPermit || !lessonId) throw new Error('Lesson permit is not available yet.');
                 const payload = {
                     model: "gemini-3.5-flash-lite",
                     systemInstruction: systemInstruction,
@@ -523,7 +523,7 @@ Prénom: Jiyeon / Métier: Médecin / Nationalité: Américaine - 이 인물을 
 
         function prevPage() {
             playPageSound();
-            if (currentIndex > 0) {
+            if (currentIndex > 1) {
                 currentIndex--;
                 render();
             }

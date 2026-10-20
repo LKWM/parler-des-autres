@@ -342,8 +342,14 @@
             }
         }
 
+        let activeStepMic = null;
+
+        function getRecordBtn() {
+            return document.getElementById('record-btn') || activeStepMic;
+        }
+
         function setMicEnabled(enabled) {
-            const recordBtn = document.getElementById('record-btn');
+            const recordBtn = getRecordBtn();
             if (!recordBtn) return;
             if (enabled) {
                 recordBtn.disabled = false;
@@ -453,8 +459,9 @@
                     </div>
 
                     <div class="w-full pt-2 shrink-0">
-                        <div id="feedback-area" class="min-h-12 flex flex-col items-center justify-center w-full text-center gap-0.5">
-                            <p class="text-gray-400 text-xs">Appuyez sur le micro pour parler</p>
+                        <div id="feedback-area" class="relative h-14 flex flex-col items-center justify-center w-full text-center gap-0.5 overflow-hidden shrink-0">
+                            <span id="fb-msg" class="text-gray-400 text-xs">Appuyez sur le micro pour parler</span>
+                            <span id="fb-score" class="text-gray-400 text-xs mt-0.5 line-clamp-2 invisible"></span>
                         </div>
                     </div>
                 </div>
@@ -462,33 +469,20 @@
 
             const listenBtn = document.getElementById('listen-btn');
             const recordBtn = document.getElementById('record-btn');
-            const feedbackArea = document.getElementById('feedback-area');
+            activeStepMic = null;
 
-            let feedbackContent = '';
-            const scoreInfo = state.attempts > 0
-                ? `<span class="text-gray-400 text-xs mt-0.5">"${state.lastText || ''}" (${state.lastScore ?? '?'}%)</span>`
-                : '';
-            
-            if (state.passed) {
-                feedbackContent = `<span class="text-green-600 font-bold text-sm">Très bien !</span>${scoreInfo}`;
+            updateRepeatFeedback(state);
+
+            if (state.passed || state.attempts >= 2) {
                 recordBtn.disabled = true;
                 recordBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            } else if (state.attempts >= 2) {
-                feedbackContent = `<span class="text-gray-500 text-sm font-bold">Passons à la suite.</span>${scoreInfo}`;
-                recordBtn.disabled = true;
-                recordBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            } else if (state.attempts > 0) {
-                feedbackContent = `<span class="text-orange-500 text-sm font-medium">Essayez encore.</span>${scoreInfo}`;
             } else {
-                feedbackContent = `<span class="text-gray-400 text-xs">Appuyez sur le micro pour parler</span>`;
-            }
-            
-            feedbackArea.innerHTML = feedbackContent;
-
-            // Auto-play: first visit AND after each failed attempt (re-render after processSpeech)
-            // mic disabled during playback via playAudio → setMicEnabled
-            if (!(state.passed) && !(state.attempts >= 2)) {
-                playAudio(data.refAudio, null, 800);
+                // 자동 재생 오디오 종료 후 마이크 자동 개방 (강제 중단: 빨간 정지 버튼)
+                playAudio(data.refAudio, () => {
+                    if (!isRecording && !state.passed && state.attempts < 2) {
+                        startRecording(data.korean, 'repeat');
+                    }
+                }, 800);
             }
 
             listenBtn.onclick = () => {
@@ -499,6 +493,43 @@
                 if (state.attempts >= 2 || state.passed) return;
                 startRecording(data.korean, 'repeat');
             };
+        }
+
+        function updateRepeatFeedback(state) {
+            const msgEl = document.getElementById('fb-msg');
+            const scoreEl = document.getElementById('fb-score');
+            if (!msgEl || !scoreEl) return;
+
+            if (state.passed) {
+                msgEl.className = 'text-green-600 font-bold text-sm';
+                msgEl.textContent = 'Très bien !';
+            } else if (state.attempts >= 2) {
+                msgEl.className = 'text-gray-500 text-sm font-bold';
+                msgEl.textContent = 'Passons à la suite.';
+            } else if (state.attempts > 0) {
+                msgEl.className = 'text-orange-500 text-sm font-medium';
+                msgEl.textContent = 'Essayez encore.';
+            } else {
+                msgEl.className = 'text-gray-400 text-xs';
+                msgEl.textContent = 'Appuyez sur le micro pour parler';
+            }
+
+            if (state.attempts > 0) {
+                scoreEl.textContent = `"${state.lastText || ''}" (${state.lastScore ?? '?'})`;
+                scoreEl.classList.remove('invisible');
+            } else {
+                scoreEl.textContent = '';
+                scoreEl.classList.add('invisible');
+            }
+        }
+
+        function setRepeatStatus(text, cls) {
+            const msgEl = document.getElementById('fb-msg');
+            const scoreEl = document.getElementById('fb-score');
+            if (!msgEl) return;
+            msgEl.className = cls;
+            msgEl.textContent = text;
+            if (scoreEl) scoreEl.classList.add('invisible');
         }
 
         function renderMultiStepChallenge(data) {
@@ -517,70 +548,89 @@
 
                     <!-- Cards List -->
                     <div class="w-full max-w-lg space-y-3 shrink-0 card-list overflow-y-auto">
-                        ${data.steps.map((step, index) => {
-                            const isCompleted = index < state.currentStep;
-                            const isActive = index === state.currentStep;
-                            const isLocked = index > state.currentStep;
-                            
-                            let opacityClass = isLocked ? "opacity-40 grayscale" : "opacity-100";
-                            
-                            let borderClass = "border-gray-200 bg-white";
-                            if (isCompleted) {
-                                borderClass = "border-green-300 bg-green-50";
-                            } else if (isActive) {
-                                borderClass = "border-indigo-400 ring-2 ring-indigo-100";
-                                if (state.stepPassed) borderClass = "border-green-300 bg-green-50";
-                            }
-                            
-                            let displayKorean = step.prompt;
-                            let showAudio = false;
-
-                            if (isActive) {
-                                if (state.stepAttempts >= 1) showAudio = true;
-                                if (state.stepAttempts >= 2) displayKorean = step.target;
-                                if (state.stepPassed) {
-                                    displayKorean = step.target;
-                                    showAudio = true; 
-                                }
-                            } else if (isCompleted) {
-                                displayKorean = step.target;
-                                showAudio = true;
-                            }
-
-                            return `
-                                <div class="w-full p-4 rounded-xl border ${borderClass} shadow-sm flex flex-col gap-2 ${opacityClass} transition-all duration-300">
-                                    <div class="flex justify-between items-center">
-                                        <div class="flex-1">
-                                            <h4 class="text-lg font-bold text-gray-800 leading-snug">${displayKorean}</h4>
-                                            <p class="text-sm text-gray-500 font-bold">${step.subtitle}</p>
-                                        </div>
-                                        
-                                        <div class="flex items-center gap-2 shrink-0 ${isLocked ? 'pointer-events-none' : ''}">
-                                            <button onclick="playAudio('${step.audio}')" class="${showAudio ? '' : 'hidden'} w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors shadow-sm">
-                                                <i class="ph ph-speaker-high text-lg"></i>
-                                            </button>
-                                            
-                                            ${isActive && !state.stepPassed ? `
-                                                <button id="record-btn" onclick="startRecording('${step.target}', 'multi_step')" class="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 transition-colors shadow-sm ring-2 ring-transparent">
-                                                    <i class="ph ph-microphone text-lg"></i>
-                                                </button>
-                                            ` : ''}
-                                            
-                                            ${isCompleted || state.stepPassed ? '<i class="ph ph-check-circle text-green-500 text-3xl ml-1"></i>' : ''}
-                                        </div>
+                        ${data.steps.map((step, index) => `
+                            <div id="step-card-${index}" class="w-full p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex flex-col gap-2 opacity-100 transition-all duration-300">
+                                <div class="flex justify-between items-center">
+                                    <div class="flex-1">
+                                        <h4 class="grid text-lg font-bold text-gray-800 leading-snug">
+                                            <span id="step-prompt-${index}" class="col-start-1 row-start-1">${step.prompt}</span>
+                                            <span id="step-target-${index}" class="col-start-1 row-start-1 invisible">${step.target}</span>
+                                        </h4>
+                                        <p class="text-sm text-gray-500 font-bold">${step.subtitle}</p>
                                     </div>
                                     
-                                    ${isActive && state.stepAttempts > 0 && !state.stepPassed ? `
-                                        <div class="text-xs text-center text-orange-500 font-medium mt-1">
-                                             Essayez encore (${state.stepAttempts}/3)
-                                        </div>
-                                    ` : ''}
+                                    <div class="flex items-center gap-2 shrink-0">
+                                        <button id="step-audio-${index}" class="invisible w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors shadow-sm shrink-0">
+                                            <i class="ph ph-speaker-high text-lg"></i>
+                                        </button>
+                                        
+                                        <button id="step-mic-${index}" class="invisible w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 transition-colors shadow-sm ring-2 ring-transparent shrink-0">
+                                            <i class="ph ph-microphone text-lg"></i>
+                                        </button>
+                                        
+                                        <i id="step-check-${index}" class="invisible ph ph-check-circle text-green-500 text-3xl ml-1"></i>
+                                    </div>
                                 </div>
-                            `;
-                        }).join('')}
+                                
+                                <div id="step-try-${index}" class="invisible text-xs text-center text-orange-500 font-medium mt-1"></div>
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
             `;
+
+            updateStepCards(data);
+        }
+
+        function updateStepCards(data) {
+            const state = getExerciseState(currentIndex);
+
+            data.steps.forEach((step, index) => {
+                const card = document.getElementById('step-card-' + index);
+                if (!card) return;
+
+                const isCompleted = index < state.currentStep;
+                const isActive = index === state.currentStep && !state.isFinished;
+                const isLocked = !isCompleted && !isActive;
+
+                card.classList.toggle('opacity-40', isLocked);
+                card.classList.toggle('grayscale', isLocked);
+
+                card.classList.remove('border-gray-200', 'bg-white', 'border-green-300', 'bg-green-50', 'border-indigo-400', 'ring-2', 'ring-indigo-100');
+                if (isCompleted || (isActive && state.stepPassed)) {
+                    card.classList.add('border-green-300', 'bg-green-50');
+                } else if (isActive) {
+                    card.classList.add('border-indigo-400', 'ring-2', 'ring-indigo-100');
+                } else {
+                    card.classList.add('border-gray-200', 'bg-white');
+                }
+
+                const showTarget = (isActive && (state.stepAttempts >= 2 || state.stepPassed)) || isCompleted;
+                document.getElementById('step-prompt-' + index).classList.toggle('invisible', showTarget);
+                document.getElementById('step-target-' + index).classList.toggle('invisible', !showTarget);
+
+                const showAudio = (isActive && (state.stepAttempts >= 1 || state.stepPassed)) || isCompleted;
+                const audioBtn = document.getElementById('step-audio-' + index);
+                audioBtn.classList.toggle('invisible', !showAudio);
+                audioBtn.onclick = () => playAudio(step.audio);
+
+                const micBtn = document.getElementById('step-mic-' + index);
+                const showMic = isActive && !state.stepPassed;
+                micBtn.classList.toggle('invisible', !showMic);
+                if (showMic) {
+                    activeStepMic = micBtn;
+                    micBtn.onclick = () => startRecording(step.target, 'multi_step');
+                } else if (activeStepMic === micBtn) {
+                    activeStepMic = null;
+                }
+
+                document.getElementById('step-check-' + index).classList.toggle('invisible', !(isCompleted || (isActive && state.stepPassed)));
+
+                const tryEl = document.getElementById('step-try-' + index);
+                const showTry = isActive && state.stepAttempts > 0 && !state.stepPassed;
+                tryEl.classList.toggle('invisible', !showTry);
+                if (showTry) tryEl.textContent = `Essayez encore (${state.stepAttempts}/3)`;
+            });
         }
 
         // --- Shared Recording Logic ---
@@ -612,7 +662,7 @@
                     mediaRecorder.start();
                     isRecording = true;
                     
-                    const recordBtn = document.getElementById('record-btn');
+                    const recordBtn = getRecordBtn();
                     const feedbackArea = document.getElementById('feedback-area');
 
                     if (recordBtn) {
@@ -622,11 +672,9 @@
                         recordBtn.innerHTML = `<i class="ph ph-stop ${iconSize}"></i>`;
                     }
 
-                    if (feedbackArea && mode === 'repeat') {
-                        feedbackArea.innerHTML = '<p class="text-indigo-600 animate-pulse text-xs">Enregistrement...</p>';
-                    }
+                    if (mode === 'repeat') setRepeatStatus('Enregistrement...', 'text-indigo-600 animate-pulse text-xs');
 
-                    // Auto-stop after 8 seconds
+                    // Auto-stop after 10 seconds
                     recordingTimeout = setTimeout(() => {
                         if (isRecording && mediaRecorder.state === 'recording') {
                             mediaRecorder.stop();
@@ -638,11 +686,9 @@
                                 const iconSize = mode === 'multi_step' ? 'text-lg' : 'text-xl';
                                 recordBtn.innerHTML = `<i class="ph ph-microphone ${iconSize}"></i>`;
                             }
-                            if (feedbackArea && mode === 'repeat') {
-                                feedbackArea.innerHTML = '<p class="text-gray-400 text-xs">Analyse...</p>';
-                            }
+                            if (mode === 'repeat') setRepeatStatus('Analyse...', 'text-gray-400 text-xs');
                         }
-                    }, 8000);
+                    }, 10000);
 
                 } catch (err) {
                     console.error(err);
@@ -661,9 +707,7 @@
                     const iconSize = mode === 'multi_step' ? 'text-lg' : 'text-xl';
                     recordBtn.innerHTML = `<i class="ph ph-microphone ${iconSize}"></i>`;
                 }
-                if (feedbackArea && mode === 'repeat') {
-                    feedbackArea.innerHTML = '<p class="text-gray-400 text-xs">Analyse...</p>';
-                }
+                if (mode === 'repeat') setRepeatStatus('Analyse...', 'text-gray-400 text-xs');
             }
         }
 
@@ -729,8 +773,24 @@
                     }
                 }
             }
-            
-            render(); 
+            if (mode === 'multi_step') {
+                updateStepCards(lessonData[pageIndex]);
+            } else {
+                updateRepeatFeedback(state);
+                const repeatBtn = getRecordBtn();
+                if (repeatBtn && (state.passed || state.attempts >= 2)) {
+                    repeatBtn.disabled = true;
+                    repeatBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+                if (!state.passed && state.attempts < 2) {
+                    // 실패 후 오디오 재생 → 종료 시 마이크 자동 개방
+                    playAudio(lessonData[pageIndex].refAudio, () => {
+                        if (!isRecording && !state.passed && state.attempts < 2) {
+                            startRecording(referenceText, 'repeat');
+                        }
+                    }, 800);
+                }
+            }
             updateProgress();
         }
 
@@ -751,6 +811,11 @@
         // --- Render Engine ---
         function render() {
             stopAudio();
+            if (isRecording) {
+                if (recordingTimeout) clearTimeout(recordingTimeout);
+                try { if (mediaRecorder && mediaRecorder.state !== 'inactive') { mediaRecorder.onstop = null; mediaRecorder.stop(); } } catch (e) {}
+                isRecording = false;
+            }
             updateProgress();
             const data = lessonData[currentIndex];
             contentArea.innerHTML = ''; 
