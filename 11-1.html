@@ -303,7 +303,7 @@
             if (!lessonPermit || !lessonId) throw new Error('Lesson permit is not available yet.');
             const payload = {
                 model: "gemini-3.5-flash-lite",
-                systemInstruction: "Transcribe this audio in Korean. Do not add any comment, just transcribe",
+                systemInstruction: "유저 발화를 한글로 전사하시오",
                 contents: [
                     {
                         role: "user",
