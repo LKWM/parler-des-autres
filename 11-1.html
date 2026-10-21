@@ -421,54 +421,54 @@
             }
 
             contentArea.innerHTML = `
-                <div class="fade-in w-full h-full flex flex-col items-center max-w-2xl mx-auto py-2">
-                    <div class="w-full flex justify-center pb-2 shrink-0">
+                <div class="fade-in w-full h-full flex flex-col items-center max-w-2xl mx-auto py-1">
+                    <div class="w-full flex justify-center pb-1 shrink-0">
                         <h3 class="text-xs text-indigo-600 uppercase tracking-wider text-center font-bold">
                             Regardez l'image et répondez à la question.
                         </h3>
                     </div>
                     
-                    <div class="bg-white w-full p-4 rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center gap-4 shrink-1 min-h-0 z-10 flex-1 overflow-hidden">
+                    <div class="bg-white w-[calc(100%+2rem)] -mx-4 px-0 py-1.5 rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center gap-1 shrink-1 min-h-0 z-10 flex-1 overflow-hidden">
                         
                         <div class="flex-1 w-full flex items-center justify-center min-h-0 overflow-hidden rounded-xl">
                             <img src="${data.image}" class="max-h-full max-w-full object-contain" alt="Question Image">
                         </div>
                         
-                        <div class="w-full flex flex-col items-center shrink-0 pt-2 space-y-4 bg-white z-20 hint-area overflow-y-auto" style="max-height: 50%;">
+                        <div class="w-full flex flex-col items-center shrink-0 pt-0 space-y-0.5 bg-white z-20 hint-area overflow-y-auto" style="max-height: 45%;">
                             
-                            <div id="qtext-block" class="invisible w-full flex flex-col items-center gap-1 mb-2">
+                            <div id="qtext-block" class="invisible w-full flex flex-col items-center gap-0.5 mb-0">
                                 <div class="flex items-center justify-center gap-2 w-full px-2">
-                                    <button id="q-audio-btn" onclick="playAudio('${data.qAudio}')" class="invisible w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors shadow-sm shrink-0"><i class="ph ph-speaker-high text-lg"></i></button>
-                                    <h2 class="text-xl font-bold text-gray-800 text-center leading-snug">${data.qText}</h2>
+                                    <button id="q-audio-btn" onclick="playAudio('${data.qAudio}')" class="invisible w-7 h-7 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors shadow-sm shrink-0"><i class="ph ph-speaker-high text-base"></i></button>
+                                    <h2 class="text-sm font-bold text-gray-800 text-center leading-snug">${data.qText}</h2>
                                 </div>
-                                <p id="q-trans" class="invisible text-sm text-gray-500 text-center px-4">${data.qTrans}</p>
+                                <p id="q-trans" class="invisible text-xs text-gray-500 text-center px-2">${data.qTrans}</p>
                             </div>
 
                             <div class="text-center w-full">
                                 <div class="grid w-full">
-                                    <p id="hint1" class="invisible col-start-1 row-start-1 justify-self-center text-lg text-indigo-600 font-medium bg-indigo-50 px-4 py-2 rounded-lg">${data.hint1}</p>
-                                    <p id="hint2" class="invisible col-start-1 row-start-1 justify-self-center text-lg text-orange-600 font-medium bg-orange-50 px-4 py-2 rounded-lg">Mot clé : ${data.hint2}</p>
+                                    <p id="hint1" class="invisible col-start-1 row-start-1 justify-self-center text-xs text-indigo-600 font-medium bg-indigo-50 px-3 py-1 rounded-lg">${data.hint1}</p>
+                                    <p id="hint2" class="invisible col-start-1 row-start-1 justify-self-center text-xs text-orange-600 font-medium bg-orange-50 px-3 py-1 rounded-lg">Mot clé : ${data.hint2}</p>
                                     <div id="hint3" class="invisible col-start-1 row-start-1 justify-self-center flex items-center justify-center gap-2">
                                         ${data.aAudio ? `
-                                            <button id="a-audio-btn" onclick="playAudio('${data.aAudio}')" class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition-colors">
-                                                <i class="ph ph-speaker-high text-lg"></i>
+                                            <button id="a-audio-btn" onclick="playAudio('${data.aAudio}')" class="w-7 h-7 rounded-full bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition-colors">
+                                                <i class="ph ph-speaker-high text-base"></i>
                                             </button>
                                         ` : ''}
-                                        <p class="text-lg text-green-600 font-bold bg-green-50 px-4 py-2 rounded-lg">${data.hint3}</p>
+                                        <p class="text-xs text-green-600 font-bold bg-green-50 px-3 py-1 rounded-lg">${data.hint3}</p>
                                     </div>
                                 </div>
                             </div>
                                 
-                            <div id="feedback-msg" class="min-h-6 w-full text-center text-sm font-bold flex flex-col items-center gap-0.5">
+                            <div id="feedback-msg" class="min-h-4 w-full text-center text-xs font-bold flex flex-col items-center gap-0">
                                 <span id="fb-msg" class="invisible">\u00A0</span>
                                 <span id="fb-score" class="invisible text-xs font-normal">\u00A0</span>
                             </div>
 
                         </div>
 
-                        <div class="w-full flex justify-center pb-2 pt-2">
-                            <button id="record-btn" class="w-14 h-14 rounded-full bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition-all ring-4 ring-transparent shadow-md hover:scale-105">
-                                <i class="ph ph-microphone text-2xl"></i>
+                        <div class="w-full flex justify-center pb-0.5 pt-0.5">
+                            <button id="record-btn" class="w-12 h-12 rounded-full bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition-all ring-2 ring-transparent shadow-md hover:scale-105">
+                                <i class="ph ph-microphone text-xl"></i>
                             </button>
                         </div>
                     </div>
