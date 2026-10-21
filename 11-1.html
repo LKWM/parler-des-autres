@@ -55,29 +55,29 @@
         }
     </style>
     <style>
-        /* Page question : tailles 100% relatives (clamp+vh), marges egales */
-        .q-page { width: 100%; max-width: 42rem; margin: -1rem auto; display: flex; flex-direction: column; align-items: center; flex: 1 1 auto; min-height: 0; }
-        .q-head { flex: 0 0 auto; font-size: clamp(0.6rem, 1.3vh, 99rem); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #4f46e5; text-align: center; margin: 0 0 clamp(0.3rem, 0.6vh, 99rem); }
-        .q-card { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: clamp(0.35rem, 0.7vh, 99rem); padding: clamp(0.35rem, 0.8vh, 99rem); background: #ffffff; border: 1px solid #f3f4f6; border-radius: clamp(0.9rem, 2.2vh, 99rem); box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25); overflow: hidden; }
-        .q-img-slot { flex: 1 1 66.6vh; min-height: 0; width: 100%; overflow: hidden; border-radius: clamp(0.4rem, 1.2vh, 99rem); }
-        .q-img-slot img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .q-text { flex: 0 0 auto; width: 100%; display: flex; flex-direction: column; align-items: center; gap: clamp(0.15rem, 0.35vh, 99rem); }
+        /* Page question — base f525ffaf : valeurs 100% relatives, marges/gaps uniformes, ratio image preserve */
+        .q-page { width: 100%; height: 100%; max-width: 42rem; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: clamp(0.35rem, 0.7vh, 99rem); }
+        .q-head { flex: 0 0 auto; font-size: clamp(0.6rem, 1.1vh, 99rem); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #4f46e5; text-align: center; margin: 0; }
+        .q-card { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: clamp(0.35rem, 0.7vh, 99rem); padding: clamp(0.35rem, 0.7vh, 99rem); background: #ffffff; border: 1px solid #f3f4f6; border-radius: clamp(0.8rem, 2vh, 99rem); box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25); overflow: hidden; }
+        .q-img-slot { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: clamp(0.4rem, 1.2vh, 99rem); }
+        .q-img-slot img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
+        .q-text { flex: 0 0 auto; width: 100%; display: flex; flex-direction: column; align-items: center; gap: clamp(0.2rem, 0.5vh, 99rem); }
         .q-text-row { display: flex; align-items: center; justify-content: center; gap: clamp(0.25rem, 0.6vh, 99rem); width: 100%; padding: 0 clamp(0.35rem, 1vw, 99rem); }
-        .q-audio { flex: 0 0 auto; width: clamp(1.5rem, 2.6vh, 99rem); height: clamp(1.5rem, 2.6vh, 99rem); border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
-        .q-audio i { font-size: clamp(0.75rem, 1.3vh, 99rem); line-height: 1; }
-        .q-h2 { font-size: clamp(0.7rem, 1.6vh, 99rem); font-weight: 700; color: #1f2937; text-align: center; line-height: 1.3; margin: 0; }
-        .q-trans { font-size: clamp(0.6rem, 1.2vh, 99rem); color: #6b7280; text-align: center; line-height: 1.3; margin: 0; padding: 0 clamp(0.35rem, 1vw, 99rem); }
+        .q-audio { flex: 0 0 auto; width: clamp(1.3rem, 2.2vh, 99rem); height: clamp(1.3rem, 2.2vh, 99rem); border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
+        .q-audio i { font-size: clamp(0.7rem, 1.2vh, 99rem); line-height: 1; }
+        .q-h2 { font-size: clamp(0.75rem, 1.7vh, 99rem); font-weight: 700; color: #1f2937; text-align: center; line-height: 1.25; margin: 0; }
+        .q-trans { font-size: clamp(0.6rem, 1.1vh, 99rem); color: #6b7280; text-align: center; line-height: 1.25; margin: 0; padding: 0 clamp(0.35rem, 1vw, 99rem); }
         .q-hints { flex: 0 0 auto; width: 100%; display: flex; justify-content: center; }
         .q-hint-cell { display: grid; justify-items: center; }
         .q-hint-cell > * { grid-area: 1 / 1; }
-        .q-pill { font-size: clamp(0.6rem, 1.3vh, 99rem); font-weight: 500; line-height: 1.3; white-space: nowrap; margin: 0; padding: clamp(0.15rem, 0.4vh, 99rem) clamp(0.5rem, 1.3vh, 99rem); border-radius: clamp(0.3rem, 0.8vh, 99rem); }
+        .q-pill { font-size: clamp(0.65rem, 1.25vh, 99rem); font-weight: 500; line-height: 1.25; white-space: nowrap; margin: 0; padding: clamp(0.2rem, 0.4vh, 99rem) clamp(0.5rem, 1vh, 99rem); border-radius: clamp(0.3rem, 0.8vh, 99rem); }
         .q-pill3 { display: flex; align-items: center; gap: clamp(0.25rem, 0.6vh, 99rem); }
-        .q-fb { flex: 0 0 auto; width: 100%; display: flex; flex-direction: column; align-items: center; gap: clamp(0.1rem, 0.2vh, 99rem); min-height: clamp(1rem, 2.4vh, 99rem); }
-        .q-fb-msg, .q-fb-score { font-size: clamp(0.6rem, 1.2vh, 99rem); font-weight: 700; line-height: 1.3; }
-        .q-fb-score { font-size: clamp(0.55rem, 1vh, 99rem); font-weight: 400; color: #9ca3af; }
+        .q-fb { flex: 0 0 auto; width: 100%; display: flex; flex-direction: column; align-items: center; gap: clamp(0.1rem, 0.2vh, 99rem); min-height: clamp(1rem, 2.3vh, 99rem); }
+        .q-fb-msg, .q-fb-score { font-size: clamp(0.6rem, 1.1vh, 99rem); font-weight: 700; line-height: 1.25; }
+        .q-fb-score { font-size: clamp(0.55rem, 1.1vh, 99rem); font-weight: 400; color: #9ca3af; }
         .q-mic-wrap { flex: 0 0 auto; width: 100%; display: flex; justify-content: center; }
-        .q-mic { width: clamp(2.3rem, 4.2vh, 99rem); height: clamp(2.3rem, 4.2vh, 99rem); border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
-        .q-mic i { font-size: clamp(1rem, 2vh, 99rem); line-height: 1; }
+        .q-mic { width: clamp(2rem, 3.2vh, 99rem); height: clamp(2rem, 3.2vh, 99rem); border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
+        .q-mic i { font-size: clamp(0.9rem, 1.8vh, 99rem); line-height: 1; }
     </style>
 </head>
 <body class="bg-white">
