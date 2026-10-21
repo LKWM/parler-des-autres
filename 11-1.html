@@ -53,28 +53,68 @@
             scrollbar-width: thin;
             scrollbar-color: #cbd5e1 transparent;
         }
+
+        /* ===== Layout 100% relatif (proportions originales conservees, aucune valeur absolue) ===== */
+        .ld-bar { height: clamp(0.2rem, 0.586vh, 99rem); }
+        .ld-content { padding: clamp(0.75rem, 1.5625vh, 99rem); }
+        .ld-nav { height: clamp(3rem, 7.8125vh, 99rem); padding-inline: clamp(0.75rem, max(2.34vh, 3.5vw), 99rem); }
+        .ld-prev { width: clamp(2rem, 4.6875vh, 99rem); height: clamp(2rem, 4.6875vh, 99rem); }
+        .ld-prev-i { font-size: clamp(0.8rem, 1.953vh, 99rem); }
+        .ld-next { padding: clamp(0.6rem, 1.172vh, 99rem) clamp(1.5rem, 2.34vh, 99rem); font-size: clamp(0.7rem, 1.5625vh, 99rem); }
+        .ld-i-xl { font-size: clamp(0.8rem, 1.953vh, 99rem); }
+        .ld-cov-max { max-width: min(100%, 104.6vmin); }
+        .ld-cov-gap { gap: clamp(1.5rem, 3.906vh, 99rem); }
+        .ld-cov-circle { padding: clamp(1.25rem, 3.125vh, 99rem); }
+        .ld-cov-icon { font-size: clamp(2.5rem, 5.859vh, 99rem); }
+        .ld-cov-textgap { display: flex; flex-direction: column; gap: clamp(1rem, 2.34vh, 99rem); }
+        .ld-text-lg { font-size: clamp(0.8rem, 1.758vh, 99rem); }
+        .ld-text-2xl { font-size: clamp(1rem, 2.34vh, 99rem); }
+        .ld-q-max { max-width: min(100%, 95.6vmin); }
+        .ld-q-page { padding-block: clamp(0.4rem, 0.78125vh, 99rem); gap: clamp(0.4rem, 0.78125vh, 99rem); }
+        .ld-q-head { font-size: clamp(0.6rem, 1.172vh, 99rem); }
+        .ld-q-card { padding: clamp(0.75rem, 1.5625vh, 99rem); gap: clamp(0.75rem, 1.5625vh, 99rem); border-radius: clamp(1rem, 2.34vh, 99rem); }
+        .ld-q-imgslot { flex: 0 1 auto; min-height: 0; border-radius: clamp(0.5rem, 1.172vh, 99rem); align-items: flex-start; }
+        .ld-q-img { width: 100%; height: auto; max-height: 100%; max-width: 100%; object-fit: contain; }
+        .ld-q-hints { flex: 1 0 auto; min-height: 0; gap: clamp(0.75rem, 1.5625vh, 99rem); padding-top: clamp(0.4rem, 0.78125vh, 99rem); }
+        .ld-q-qtext { gap: clamp(0.2rem, 0.39vh, 99rem); margin-bottom: clamp(0.4rem, 0.78125vh, 99rem); }
+        .ld-q-qrow { gap: clamp(0.25rem, 0.78125vh, 99rem); padding-inline: clamp(0.25rem, 0.78125vh, 99rem); }
+        .ld-q-audio { width: clamp(1.25rem, 3.125vh, 99rem); height: clamp(1.25rem, 3.125vh, 99rem); }
+        .ld-q-audio-i { font-size: clamp(0.7rem, 1.758vh, 99rem); line-height: 1; }
+        .ld-q-h2 { font-size: clamp(0.9rem, 1.953vh, 99rem); }
+        .ld-q-trans { font-size: clamp(0.65rem, 1.367vh, 99rem); padding-inline: clamp(0.75rem, 1.5625vh, 99rem); }
+        .ld-q-pill { font-size: clamp(0.8rem, 1.758vh, 99rem); padding: clamp(0.4rem, 0.78125vh, 99rem) clamp(0.75rem, 1.5625vh, 99rem); }
+        .ld-q-pillrow { gap: clamp(0.25rem, 0.78125vh, 99rem); }
+        .ld-q-fb { min-height: clamp(0.9rem, 2.34vh, 99rem); font-size: clamp(0.65rem, 1.367vh, 99rem); gap: clamp(0.1rem, 0.2vh, 99rem); }
+        .ld-q-score { font-size: clamp(0.6rem, 1.172vh, 99rem); }
+        .ld-q-microw { padding-top: clamp(0.4rem, 0.78125vh, 99rem); }
+        .ld-q-mic { width: clamp(2.25rem, 5.469vh, 99rem); height: clamp(2.25rem, 5.469vh, 99rem); }
+        .ld-q-mic-i { font-size: clamp(1rem, 2.34vh, 99rem); }
+        .ld-outro-max { max-width: min(100%, 95.6vmin); }
+        .ld-outro-gap { gap: clamp(1rem, 2.34vh, 99rem); }
+        .ld-outro-title { font-size: clamp(0.9rem, 1.953vh, 99rem); }
+        .ld-outro-box { padding: clamp(1rem, 2.34vh, 99rem); font-size: clamp(0.75rem, 1.5625vh, 99rem); border-radius: clamp(0.75rem, 1.5625vh, 99rem); }
     </style>
 </head>
 <body class="bg-white">
 
     <div id="game-container">
         <!-- Progress Bar -->
-        <div class="absolute top-0 left-0 w-full h-1.5 bg-gray-100 z-50">
+        <div class="absolute top-0 left-0 w-full ld-bar bg-gray-100 z-50">
             <div id="progress-bar" class="h-full bg-indigo-500 transition-all duration-300" style="width: 0%"></div>
         </div>
 
         <!-- Main Content Area -->
-        <div id="content-area" class="flex-1 w-full relative overflow-hidden flex flex-col items-center justify-center p-4">
+        <div id="content-area" class="flex-1 w-full relative overflow-hidden flex flex-col items-center justify-center ld-content">
             <!-- Dynamic Content -->
         </div>
 
         <!-- Navigation Bar -->
-        <div id="nav-area" class="w-full h-20 px-6 md:px-12 flex justify-between items-center bg-white border-t border-gray-100 z-40 shrink-0">
-            <button type="button" id="prev-btn" class="btn-hover invisible bg-gray-100 text-gray-600 w-12 h-12 rounded-full flex items-center justify-center hover:bg-gray-200 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
-                <i class="ph ph-arrow-left text-xl font-bold"></i>
+        <div id="nav-area" class="w-full ld-nav flex justify-between items-center bg-white border-t border-gray-100 z-40 shrink-0">
+            <button type="button" id="prev-btn" class="btn-hover invisible bg-gray-100 text-gray-600 ld-prev rounded-full flex items-center justify-center hover:bg-gray-200 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+                <i class="ph ph-arrow-left ld-prev-i font-bold"></i>
             </button>
             
-            <button type="button" id="next-btn" class="btn-hover bg-indigo-600 text-white px-6 py-3 rounded-full font-bold shadow-lg flex items-center gap-2 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+            <button type="button" id="next-btn" class="btn-hover bg-indigo-600 text-white ld-next rounded-full font-bold shadow-lg flex items-center gap-2 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                 Continuer <i class="ph ph-arrow-right font-bold"></i>
             </button>
         </div>
@@ -315,7 +355,7 @@
             nextBtn.disabled = !canProceed;
 
             if (currentIndex === lessonData.length - 1) {
-                nextBtn.innerHTML = `Terminer <i class="ph ph-check text-xl"></i>`;
+                nextBtn.innerHTML = `Terminer <i class="ph ph-check ld-i-xl"></i>`;
             } else {
                 nextBtn.innerHTML = `Continuer <i class="ph ph-arrow-right font-bold"></i>`;
                 navArea.classList.remove('hidden');
@@ -401,13 +441,13 @@
 
         function renderCover(data) {
             contentArea.innerHTML = `
-                <div class="fade-in w-full h-full flex flex-col items-center justify-center gap-10 text-center max-w-3xl mx-auto">
-                    <div class="bg-indigo-100 p-8 rounded-full shadow-md shrink-0">
-                        <i class="ph ph-question text-6xl text-indigo-600"></i>
+                <div class="fade-in w-full h-full flex flex-col items-center justify-center ld-cov-gap text-center ld-cov-max mx-auto">
+                    <div class="bg-indigo-100 ld-cov-circle rounded-full shadow-md shrink-0">
+                        <i class="ph ph-question ld-cov-icon text-indigo-600"></i>
                     </div>
-                    <div class="space-y-6 shrink-0">
-                        <h1 class="text-lg font-bold text-indigo-600 uppercase tracking-widest">${data.chapter}</h1>
-                        <h2 class="text-2xl font-bold text-gray-800 leading-tight">${data.title}</h2>
+                    <div class="ld-cov-textgap shrink-0">
+                        <h1 class="ld-text-lg font-bold text-indigo-600 uppercase tracking-widest">${data.chapter}</h1>
+                        <h2 class="ld-text-2xl font-bold text-gray-800 leading-tight">${data.title}</h2>
                     </div>
                 </div>
             `;
@@ -421,54 +461,54 @@
             }
 
             contentArea.innerHTML = `
-                <div class="fade-in w-full h-full flex flex-col items-center max-w-2xl mx-auto py-2">
-                    <div class="w-full flex justify-center pb-2 shrink-0">
-                        <h3 class="text-xs text-indigo-600 uppercase tracking-wider text-center font-bold">
+                <div class="fade-in w-full h-full flex flex-col items-center ld-q-max mx-auto ld-q-page">
+                    <div class="w-full flex justify-center shrink-0">
+                        <h3 class="ld-q-head text-indigo-600 uppercase tracking-wider text-center font-bold">
                             Regardez l'image et répondez à la question.
                         </h3>
                     </div>
-                    
-                    <div class="bg-white w-full p-4 rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center gap-4 shrink-1 min-h-0 z-10 flex-1 overflow-hidden">
-                        
-                        <div class="flex-1 w-full flex items-center justify-center min-h-0 overflow-hidden rounded-xl">
-                            <img src="${data.image}" class="max-h-full max-w-full object-contain" alt="Question Image">
+
+                    <div class="ld-q-card bg-white w-full shadow-xl border border-gray-100 relative flex flex-col items-center min-h-0 z-10 flex-1 overflow-hidden">
+
+                        <div class="ld-q-imgslot w-full flex min-h-0 overflow-hidden">
+                            <img src="${data.image}" class="ld-q-img" alt="Question Image">
                         </div>
-                        
-                        <div class="w-full flex flex-col items-center shrink-0 pt-2 space-y-4 bg-white z-20 hint-area overflow-y-auto" style="max-height: 50%;">
-                            
-                            <div id="qtext-block" class="invisible w-full flex flex-col items-center gap-1 mb-2">
-                                <div class="flex items-center justify-center gap-2 w-full px-2">
-                                    <button id="q-audio-btn" onclick="playAudio('${data.qAudio}')" class="invisible w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors shadow-sm shrink-0"><i class="ph ph-speaker-high text-lg"></i></button>
-                                    <h2 class="text-xl font-bold text-gray-800 text-center leading-snug">${data.qText}</h2>
+
+                        <div class="ld-q-hints w-full flex flex-col items-center bg-white z-20 hint-area overflow-y-auto" style="max-height: 50%;">
+
+                            <div id="qtext-block" class="invisible w-full flex flex-col items-center ld-q-qtext">
+                                <div class="flex items-center justify-center ld-q-qrow w-full">
+                                    <button id="q-audio-btn" onclick="playAudio('${data.qAudio}')" class="invisible ld-q-audio rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors shadow-sm shrink-0"><i class="ph ph-speaker-high ld-q-audio-i"></i></button>
+                                    <h2 class="ld-q-h2 font-bold text-gray-800 text-center leading-snug">${data.qText}</h2>
                                 </div>
-                                <p id="q-trans" class="invisible text-sm text-gray-500 text-center px-4">${data.qTrans}</p>
+                                <p id="q-trans" class="invisible ld-q-trans text-gray-500 text-center">${data.qTrans}</p>
                             </div>
 
                             <div class="text-center w-full">
                                 <div class="grid w-full">
-                                    <p id="hint1" class="invisible col-start-1 row-start-1 justify-self-center text-lg text-indigo-600 font-medium bg-indigo-50 px-4 py-2 rounded-lg">${data.hint1}</p>
-                                    <p id="hint2" class="invisible col-start-1 row-start-1 justify-self-center text-lg text-orange-600 font-medium bg-orange-50 px-4 py-2 rounded-lg">Mot clé : ${data.hint2}</p>
-                                    <div id="hint3" class="invisible col-start-1 row-start-1 justify-self-center flex items-center justify-center gap-2">
+                                    <p id="hint1" class="invisible col-start-1 row-start-1 justify-self-center ld-q-pill text-indigo-600 font-medium bg-indigo-50 rounded-lg">${data.hint1}</p>
+                                    <p id="hint2" class="invisible col-start-1 row-start-1 justify-self-center ld-q-pill text-orange-600 font-medium bg-orange-50 rounded-lg">Mot clé : ${data.hint2}</p>
+                                    <div id="hint3" class="invisible col-start-1 row-start-1 justify-self-center flex items-center justify-center ld-q-pillrow">
                                         ${data.aAudio ? `
-                                            <button id="a-audio-btn" onclick="playAudio('${data.aAudio}')" class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition-colors">
-                                                <i class="ph ph-speaker-high text-lg"></i>
+                                            <button id="a-audio-btn" onclick="playAudio('${data.aAudio}')" class="ld-q-audio rounded-full bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition-colors">
+                                                <i class="ph ph-speaker-high ld-q-audio-i"></i>
                                             </button>
                                         ` : ''}
-                                        <p class="text-lg text-green-600 font-bold bg-green-50 px-4 py-2 rounded-lg">${data.hint3}</p>
+                                        <p class="ld-q-pill text-green-600 font-bold bg-green-50 rounded-lg">${data.hint3}</p>
                                     </div>
                                 </div>
                             </div>
-                                
-                            <div id="feedback-msg" class="min-h-6 w-full text-center text-sm font-bold flex flex-col items-center gap-0.5">
+
+                            <div id="feedback-msg" class="ld-q-fb w-full text-center font-bold flex flex-col items-center">
                                 <span id="fb-msg" class="invisible">\u00A0</span>
-                                <span id="fb-score" class="invisible text-xs font-normal">\u00A0</span>
+                                <span id="fb-score" class="invisible ld-q-score font-normal">\u00A0</span>
                             </div>
 
                         </div>
 
-                        <div class="w-full flex justify-center pb-2 pt-2">
-                            <button id="record-btn" class="w-14 h-14 rounded-full bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition-all ring-4 ring-transparent shadow-md hover:scale-105">
-                                <i class="ph ph-microphone text-2xl"></i>
+                        <div class="w-full flex justify-center ld-q-microw">
+                            <button id="record-btn" class="ld-q-mic rounded-full bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition-all ring-4 ring-transparent shadow-md hover:scale-105">
+                                <i class="ph ph-microphone ld-q-mic-i"></i>
                             </button>
                         </div>
                     </div>
@@ -524,10 +564,10 @@
                 }
 
                 if (state.attempts > 0) {
-                    fbScore.className = 'text-gray-400 text-xs font-normal';
+                    fbScore.className = 'text-gray-400 ld-q-score font-normal';
                     fbScore.textContent = `"${state.lastText || ''}" (${state.lastScore ?? '?'}%)`;
                 } else {
-                    fbScore.className = 'invisible text-xs font-normal';
+                    fbScore.className = 'invisible ld-q-score font-normal';
                     fbScore.textContent = '\u00A0';
                 }
             }
@@ -584,10 +624,10 @@
                             if (!st.passed && st.attempts < 3) {
                                 recordBtn.classList.remove('bg-red-500', 'text-white', 'ring-red-200');
                                 recordBtn.classList.add('bg-red-50', 'text-red-500', 'hover:bg-red-100');
-                                recordBtn.innerHTML = `<i class="ph ph-microphone text-2xl"></i>`;
+                                recordBtn.innerHTML = `<i class="ph ph-microphone ld-q-mic-i"></i>`;
                             }
                         }
-                        setQuestionStatus('Analyse...', 'text-gray-400 text-xs');
+                        setQuestionStatus('Analyse...', 'text-gray-400 ld-q-score');
                     };
                     
                     mediaRecorder.start();
@@ -596,9 +636,9 @@
                     if (recordBtn) {
                         recordBtn.classList.remove('bg-red-50', 'text-red-500', 'hover:bg-red-100');
                         recordBtn.classList.add('bg-red-500', 'text-white', 'ring-red-200');
-                        recordBtn.innerHTML = `<i class="ph ph-stop text-2xl"></i>`;
+                        recordBtn.innerHTML = `<i class="ph ph-stop ld-q-mic-i"></i>`;
                     }
-                    setQuestionStatus('Enregistrement...', 'text-indigo-600 animate-pulse text-xs');
+                    setQuestionStatus('Enregistrement...', 'text-indigo-600 animate-pulse ld-q-score');
 
                     // Auto-stop after 8 seconds
                     recordingTimeout = setTimeout(() => {
@@ -621,7 +661,7 @@
                     if (recordBtn) {
                         recordBtn.classList.remove('bg-red-500', 'text-white', 'ring-red-200');
                         recordBtn.classList.add('bg-red-50', 'text-red-500', 'hover:bg-red-100');
-                        recordBtn.innerHTML = `<i class="ph ph-microphone text-2xl"></i>`;
+                        recordBtn.innerHTML = `<i class="ph ph-microphone ld-q-mic-i"></i>`;
                     }
                 }
             }
@@ -676,9 +716,9 @@
         function renderOutro(data) {
             navArea.classList.add('hidden');
             contentArea.innerHTML = `
-                <div class="fade-in w-full h-full flex flex-col items-center justify-center gap-6 text-center max-w-2xl mx-auto">
-                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">Terminé !</h2>
-                    <div class="w-full bg-indigo-600 text-white p-6 rounded-2xl shadow-lg text-base leading-relaxed">
+                <div class="fade-in w-full h-full flex flex-col items-center justify-center ld-outro-gap text-center ld-outro-max mx-auto">
+                    <h2 class="ld-outro-title font-bold text-gray-800">Terminé !</h2>
+                    <div class="w-full bg-indigo-600 text-white ld-outro-box shadow-lg leading-relaxed">
                         ${data.text}
                     </div>
                 </div>
