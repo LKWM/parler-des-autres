@@ -54,31 +54,6 @@
             scrollbar-color: #cbd5e1 transparent;
         }
     </style>
-    <style>
-        /* Page question — base f525ffaf : valeurs 100% relatives, marges/gaps uniformes, ratio image preserve */
-        .q-page { width: 100%; height: 100%; max-width: 42rem; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: clamp(0.35rem, 0.7vh, 99rem); }
-        .q-head { flex: 0 0 auto; font-size: clamp(0.6rem, 1.1vh, 99rem); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #4f46e5; text-align: center; margin: 0; }
-        .q-card { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: clamp(0.35rem, 0.7vh, 99rem); padding: clamp(0.35rem, 0.7vh, 99rem); background: #ffffff; border: 1px solid #f3f4f6; border-radius: clamp(0.8rem, 2vh, 99rem); box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25); overflow: hidden; }
-        .q-img-slot { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: clamp(0.4rem, 1.2vh, 99rem); }
-        .q-img-slot img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
-        .q-text { flex: 0 0 auto; width: 100%; display: flex; flex-direction: column; align-items: center; gap: clamp(0.2rem, 0.5vh, 99rem); }
-        .q-text-row { display: flex; align-items: center; justify-content: center; gap: clamp(0.25rem, 0.6vh, 99rem); width: 100%; padding: 0 clamp(0.35rem, 1vw, 99rem); }
-        .q-audio { flex: 0 0 auto; width: clamp(1.3rem, 2.2vh, 99rem); height: clamp(1.3rem, 2.2vh, 99rem); border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
-        .q-audio i { font-size: clamp(0.7rem, 1.2vh, 99rem); line-height: 1; }
-        .q-h2 { font-size: clamp(0.75rem, 1.7vh, 99rem); font-weight: 700; color: #1f2937; text-align: center; line-height: 1.25; margin: 0; }
-        .q-trans { font-size: clamp(0.6rem, 1.1vh, 99rem); color: #6b7280; text-align: center; line-height: 1.25; margin: 0; padding: 0 clamp(0.35rem, 1vw, 99rem); }
-        .q-hints { flex: 0 0 auto; width: 100%; display: flex; justify-content: center; }
-        .q-hint-cell { display: grid; justify-items: center; }
-        .q-hint-cell > * { grid-area: 1 / 1; }
-        .q-pill { font-size: clamp(0.65rem, 1.25vh, 99rem); font-weight: 500; line-height: 1.25; white-space: nowrap; margin: 0; padding: clamp(0.2rem, 0.4vh, 99rem) clamp(0.5rem, 1vh, 99rem); border-radius: clamp(0.3rem, 0.8vh, 99rem); }
-        .q-pill3 { display: flex; align-items: center; gap: clamp(0.25rem, 0.6vh, 99rem); }
-        .q-fb { flex: 0 0 auto; width: 100%; display: flex; flex-direction: column; align-items: center; gap: clamp(0.1rem, 0.2vh, 99rem); min-height: clamp(1rem, 2.3vh, 99rem); }
-        .q-fb-msg, .q-fb-score { font-size: clamp(0.6rem, 1.1vh, 99rem); font-weight: 700; line-height: 1.25; }
-        .q-fb-score { font-size: clamp(0.55rem, 1.1vh, 99rem); font-weight: 400; color: #9ca3af; }
-        .q-mic-wrap { flex: 0 0 auto; width: 100%; display: flex; justify-content: center; }
-        .q-mic { width: clamp(2rem, 3.2vh, 99rem); height: clamp(2rem, 3.2vh, 99rem); border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
-        .q-mic i { font-size: clamp(0.9rem, 1.8vh, 99rem); line-height: 1; }
-    </style>
 </head>
 <body class="bg-white">
 
@@ -446,35 +421,55 @@
             }
 
             contentArea.innerHTML = `
-                <div class="fade-in q-page">
-                    <h3 class="q-head">Regardez l'image et répondez à la question.</h3>
-                    <div class="q-card">
-                        <div class="q-img-slot">
-                            <img src="${data.image}" alt="Question Image">
+                <div class="fade-in w-full h-full flex flex-col items-center max-w-2xl mx-auto py-2">
+                    <div class="w-full flex justify-center pb-2 shrink-0">
+                        <h3 class="text-xs text-indigo-600 uppercase tracking-wider text-center font-bold">
+                            Regardez l'image et répondez à la question.
+                        </h3>
+                    </div>
+                    
+                    <div class="bg-white w-full p-4 rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center gap-4 shrink-1 min-h-0 z-10 flex-1 overflow-hidden">
+                        
+                        <div class="flex-1 w-full flex items-center justify-center min-h-0 overflow-hidden rounded-xl">
+                            <img src="${data.image}" class="max-h-full max-w-full object-contain" alt="Question Image">
                         </div>
-                        <div id="qtext-block" class="invisible q-text">
-                            <div class="q-text-row">
-                                <button id="q-audio-btn" onclick="playAudio('${data.qAudio}')" class="invisible q-audio bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"><i class="ph ph-speaker-high"></i></button>
-                                <h2 class="q-h2">${data.qText}</h2>
+                        
+                        <div class="w-full flex flex-col items-center shrink-0 pt-2 space-y-4 bg-white z-20 hint-area overflow-y-auto" style="max-height: 50%;">
+                            
+                            <div id="qtext-block" class="invisible w-full flex flex-col items-center gap-1 mb-2">
+                                <div class="flex items-center justify-center gap-2 w-full px-2">
+                                    <button id="q-audio-btn" onclick="playAudio('${data.qAudio}')" class="invisible w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors shadow-sm shrink-0"><i class="ph ph-speaker-high text-lg"></i></button>
+                                    <h2 class="text-xl font-bold text-gray-800 text-center leading-snug">${data.qText}</h2>
+                                </div>
+                                <p id="q-trans" class="invisible text-sm text-gray-500 text-center px-4">${data.qTrans}</p>
                             </div>
-                            <p id="q-trans" class="invisible q-trans">${data.qTrans}</p>
-                        </div>
-                        <div class="q-hints">
-                            <div class="q-hint-cell">
-                                <p id="hint1" class="invisible q-pill bg-indigo-50 text-indigo-600 font-medium">${data.hint1}</p>
-                                <p id="hint2" class="invisible q-pill bg-orange-50 text-orange-600 font-medium">Mot clé : ${data.hint2}</p>
-                                <div id="hint3" class="invisible q-pill q-pill3">
-                                    ${data.aAudio ? `<button id="a-audio-btn" onclick="playAudio('${data.aAudio}')" class="q-audio bg-green-100 text-green-600 hover:bg-green-200 transition-colors"><i class="ph ph-speaker-high"></i></button>` : ''}
-                                    <span class="bg-green-50 text-green-600 font-bold" style="border-radius: inherit; padding: inherit;">${data.hint3}</span>
+
+                            <div class="text-center w-full">
+                                <div class="grid w-full">
+                                    <p id="hint1" class="invisible col-start-1 row-start-1 justify-self-center text-lg text-indigo-600 font-medium bg-indigo-50 px-4 py-2 rounded-lg">${data.hint1}</p>
+                                    <p id="hint2" class="invisible col-start-1 row-start-1 justify-self-center text-lg text-orange-600 font-medium bg-orange-50 px-4 py-2 rounded-lg">Mot clé : ${data.hint2}</p>
+                                    <div id="hint3" class="invisible col-start-1 row-start-1 justify-self-center flex items-center justify-center gap-2">
+                                        ${data.aAudio ? `
+                                            <button id="a-audio-btn" onclick="playAudio('${data.aAudio}')" class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition-colors">
+                                                <i class="ph ph-speaker-high text-lg"></i>
+                                            </button>
+                                        ` : ''}
+                                        <p class="text-lg text-green-600 font-bold bg-green-50 px-4 py-2 rounded-lg">${data.hint3}</p>
+                                    </div>
                                 </div>
                             </div>
+                                
+                            <div id="feedback-msg" class="min-h-6 w-full text-center text-sm font-bold flex flex-col items-center gap-0.5">
+                                <span id="fb-msg" class="invisible">\u00A0</span>
+                                <span id="fb-score" class="invisible text-xs font-normal">\u00A0</span>
+                            </div>
+
                         </div>
-                        <div id="feedback-msg" class="q-fb">
-                            <span id="fb-msg" class="invisible q-fb-msg">\u00A0</span>
-                            <span id="fb-score" class="invisible q-fb-score">\u00A0</span>
-                        </div>
-                        <div class="q-mic-wrap">
-                            <button id="record-btn" class="q-mic bg-red-50 text-red-500 hover:bg-red-100 transition-all ring-2 ring-transparent shadow-md hover:scale-105"><i class="ph ph-microphone"></i></button>
+
+                        <div class="w-full flex justify-center pb-2 pt-2">
+                            <button id="record-btn" class="w-14 h-14 rounded-full bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition-all ring-4 ring-transparent shadow-md hover:scale-105">
+                                <i class="ph ph-microphone text-2xl"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -515,24 +510,24 @@
             const fbScore = document.getElementById('fb-score');
             if (fbMsg && fbScore) {
                 if (state.passed) {
-                    fbMsg.className = 'q-fb-msg text-green-600';
+                    fbMsg.className = 'text-green-600';
                     fbMsg.textContent = 'Très bien. Passons à la question suivante.';
                 } else if (state.attempts >= 3) {
-                    fbMsg.className = 'q-fb-msg text-green-600';
+                    fbMsg.className = 'text-green-600';
                     fbMsg.textContent = 'Passons à la question suivante.';
                 } else if (state.attempts > 0) {
-                    fbMsg.className = 'q-fb-msg text-orange-500';
+                    fbMsg.className = 'text-orange-500';
                     fbMsg.textContent = 'Vous y êtes presque. Essayez encore une fois.';
                 } else {
-                    fbMsg.className = 'q-fb-msg invisible';
+                    fbMsg.className = 'invisible';
                     fbMsg.textContent = '\u00A0';
                 }
 
                 if (state.attempts > 0) {
-                    fbScore.className = 'q-fb-score text-gray-400';
+                    fbScore.className = 'text-gray-400 text-xs font-normal';
                     fbScore.textContent = `"${state.lastText || ''}" (${state.lastScore ?? '?'}%)`;
                 } else {
-                    fbScore.className = 'q-fb-score invisible';
+                    fbScore.className = 'invisible text-xs font-normal';
                     fbScore.textContent = '\u00A0';
                 }
             }
@@ -548,7 +543,7 @@
             const msgEl = document.getElementById('fb-msg');
             const scoreEl = document.getElementById('fb-score');
             if (!msgEl) return;
-            msgEl.className = 'q-fb-msg ' + cls;
+            msgEl.className = cls;
             msgEl.textContent = text;
             if (scoreEl) scoreEl.classList.add('invisible');
         }
@@ -589,10 +584,10 @@
                             if (!st.passed && st.attempts < 3) {
                                 recordBtn.classList.remove('bg-red-500', 'text-white', 'ring-red-200');
                                 recordBtn.classList.add('bg-red-50', 'text-red-500', 'hover:bg-red-100');
-                                recordBtn.innerHTML = `<i class="ph ph-microphone"></i>`;
+                                recordBtn.innerHTML = `<i class="ph ph-microphone text-2xl"></i>`;
                             }
                         }
-                        setQuestionStatus('Analyse...', 'text-gray-400');
+                        setQuestionStatus('Analyse...', 'text-gray-400 text-xs');
                     };
                     
                     mediaRecorder.start();
@@ -601,9 +596,9 @@
                     if (recordBtn) {
                         recordBtn.classList.remove('bg-red-50', 'text-red-500', 'hover:bg-red-100');
                         recordBtn.classList.add('bg-red-500', 'text-white', 'ring-red-200');
-                        recordBtn.innerHTML = `<i class="ph ph-stop"></i>`;
+                        recordBtn.innerHTML = `<i class="ph ph-stop text-2xl"></i>`;
                     }
-                    setQuestionStatus('Enregistrement...', 'text-indigo-600 animate-pulse');
+                    setQuestionStatus('Enregistrement...', 'text-indigo-600 animate-pulse text-xs');
 
                     // Auto-stop after 8 seconds
                     recordingTimeout = setTimeout(() => {
@@ -626,7 +621,7 @@
                     if (recordBtn) {
                         recordBtn.classList.remove('bg-red-500', 'text-white', 'ring-red-200');
                         recordBtn.classList.add('bg-red-50', 'text-red-500', 'hover:bg-red-100');
-                        recordBtn.innerHTML = `<i class="ph ph-microphone"></i>`;
+                        recordBtn.innerHTML = `<i class="ph ph-microphone text-2xl"></i>`;
                     }
                 }
             }
