@@ -53,20 +53,6 @@
             scrollbar-width: thin;
             scrollbar-color: #cbd5e1 transparent;
         }
-
-        /* Speech page: relative sizes only, one spacing value (--qg) for card padding and every gap */
-        #q-card { --qg-base: clamp(0.3125rem, 0.8vh, 1.5rem); padding: var(--qg, var(--qg-base)) var(--qg-base); gap: var(--qg, var(--qg-base)); }
-        #q-card .q-fb { gap: var(--qg, var(--qg-base)); }
-        #q-card .q-img { display: block; object-fit: contain; max-width: 100%; }
-        #q-card .q-row { gap: clamp(0.5rem, 1vh, 1rem); }
-        #q-card .q-audio { width: clamp(1.5rem, 3.7vh, 3rem); height: clamp(1.5rem, 3.7vh, 3rem); font-size: clamp(1rem, 2vh, 1.5rem); }
-        #q-card .q-text { font-size: clamp(1rem, 2.3vh, 1.75rem); }
-        #q-card .q-trans { font-size: clamp(0.8125rem, 1.6vh, 1.25rem); line-height: 1.4; }
-        #q-card .q-pill { font-size: clamp(0.875rem, 2vh, 1.5rem); padding: 0.3em 0.9em; }
-        #fb-msg { display: block; font-size: min(clamp(0.8125rem, 1.6vh, 1.25rem), 3.5vw); line-height: 1.4; height: 1.4em; white-space: nowrap; }
-        #fb-score { display: block; max-width: 100%; font-size: clamp(0.75rem, 1.4vh, 1rem); line-height: 1.4; height: 1.4em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        #record-btn { width: clamp(2.75rem, 6.4vh, 5rem); height: clamp(2.75rem, 6.4vh, 5rem); }
-        #record-btn i { font-size: clamp(1.25rem, 2.8vh, 2.25rem); }
     </style>
 </head>
 <body class="bg-white">
@@ -441,53 +427,53 @@
                             Regardez l'image et répondez à la question.
                         </h3>
                     </div>
-
-                    <div id="q-card" class="bg-white w-full rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center min-h-0 z-10 flex-1 overflow-hidden">
-
-                        <div id="q-img-wrap" class="w-full flex justify-center shrink-0">
-                            <img src="${data.image}" class="q-img rounded-xl" alt="Question Image">
+                    
+                    <div class="bg-white w-full p-4 rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center gap-4 shrink-1 min-h-0 z-10 flex-1 overflow-hidden">
+                        
+                        <div class="flex-1 w-full flex items-center justify-center min-h-0 overflow-hidden rounded-xl">
+                            <img src="${data.image}" class="max-h-full max-w-full object-contain" alt="Question Image">
                         </div>
+                        
+                        <div class="w-full flex flex-col items-center shrink-0 pt-2 space-y-4 bg-white z-20 hint-area overflow-y-auto" style="max-height: 50%;">
+                            
+                            <div id="qtext-block" class="invisible w-full flex flex-col items-center gap-1 mb-2">
+                                <div class="flex items-center justify-center gap-2 w-full px-2">
+                                    <button id="q-audio-btn" onclick="playAudio('${data.qAudio}')" class="invisible w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors shadow-sm shrink-0"><i class="ph ph-speaker-high text-lg"></i></button>
+                                    <h2 class="text-xl font-bold text-gray-800 text-center leading-snug">${data.qText}</h2>
+                                </div>
+                                <p id="q-trans" class="invisible text-sm text-gray-500 text-center px-4">${data.qTrans}</p>
+                            </div>
 
-                        <div id="qtext-block" class="invisible w-full flex items-center justify-center q-row shrink-0">
-                            <button id="q-audio-btn" onclick="playAudio('${data.qAudio}')" class="invisible q-audio rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors shadow-sm shrink-0"><i class="ph ph-speaker-high"></i></button>
-                            <h2 class="q-text font-bold text-gray-800 text-center leading-snug">${data.qText}</h2>
-                        </div>
-
-                        <p id="q-trans" class="invisible q-trans text-gray-500 text-center shrink-0">${data.qTrans}</p>
-
-                        <div class="text-center w-full shrink-0">
-                            <div class="grid w-full">
-                                <p id="hint1" class="invisible col-start-1 row-start-1 justify-self-center q-pill text-indigo-600 font-medium bg-indigo-50 rounded-lg">${data.hint1}</p>
-                                <p id="hint2" class="invisible col-start-1 row-start-1 justify-self-center q-pill text-orange-600 font-medium bg-orange-50 rounded-lg">Mot clé : ${data.hint2}</p>
-                                <div id="hint3" class="invisible col-start-1 row-start-1 justify-self-center flex items-center justify-center q-row">
-                                    ${data.aAudio ? `
-                                        <button id="a-audio-btn" onclick="playAudio('${data.aAudio}')" class="q-audio rounded-full bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition-colors shrink-0">
-                                            <i class="ph ph-speaker-high"></i>
-                                        </button>
-                                    ` : ''}
-                                    <p class="q-pill text-green-600 font-bold bg-green-50 rounded-lg">${data.hint3}</p>
+                            <div class="text-center w-full">
+                                <div class="grid w-full">
+                                    <p id="hint1" class="invisible col-start-1 row-start-1 justify-self-center text-lg text-indigo-600 font-medium bg-indigo-50 px-4 py-2 rounded-lg">${data.hint1}</p>
+                                    <p id="hint2" class="invisible col-start-1 row-start-1 justify-self-center text-lg text-orange-600 font-medium bg-orange-50 px-4 py-2 rounded-lg">Mot clé : ${data.hint2}</p>
+                                    <div id="hint3" class="invisible col-start-1 row-start-1 justify-self-center flex items-center justify-center gap-2">
+                                        ${data.aAudio ? `
+                                            <button id="a-audio-btn" onclick="playAudio('${data.aAudio}')" class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition-colors">
+                                                <i class="ph ph-speaker-high text-lg"></i>
+                                            </button>
+                                        ` : ''}
+                                        <p class="text-lg text-green-600 font-bold bg-green-50 px-4 py-2 rounded-lg">${data.hint3}</p>
+                                    </div>
                                 </div>
                             </div>
+                                
+                            <div id="feedback-msg" class="min-h-6 w-full text-center text-sm font-bold flex flex-col items-center gap-0.5">
+                                <span id="fb-msg" class="invisible">\u00A0</span>
+                                <span id="fb-score" class="invisible text-xs font-normal">\u00A0</span>
+                            </div>
+
                         </div>
 
-                        <div id="feedback-msg" class="w-full text-center font-bold flex flex-col items-center q-fb shrink-0">
-                            <span id="fb-msg" class="invisible">\u00A0</span>
-                            <span id="fb-score" class="invisible font-normal">\u00A0</span>
-                        </div>
-
-                        <div class="w-full flex justify-center shrink-0">
-                            <button id="record-btn" class="rounded-full bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition-all ring-4 ring-transparent shadow-md hover:scale-105">
+                        <div class="w-full flex justify-center pt-2">
+                            <button id="record-btn" class="w-14 h-14 rounded-full bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition-all ring-4 ring-transparent shadow-md hover:scale-105">
                                 <i class="ph ph-microphone text-2xl"></i>
                             </button>
                         </div>
                     </div>
                 </div>
             `;
-
-            const qImg = contentArea.querySelector('.q-img');
-            if (qImg) qImg.addEventListener('load', fitQuestionLayout);
-            fitQuestionLayout();
-            if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitQuestionLayout);
 
             updateQuestionUI(data, state);
 
@@ -499,32 +485,6 @@
                 startRecording(data.hint3);
             };
         }
-
-        // --- Speech page layout: image as large as possible, identical spacing between all items ---
-        function fitQuestionLayout() {
-            const card = document.getElementById('q-card');
-            const img = card && card.querySelector('.q-img');
-            if (!card || !img) return;
-            const fb = document.getElementById('feedback-msg');
-            const slots = 2 + (card.children.length - 1) + (fb ? fb.children.length - 1 : 0);
-            card.style.setProperty('--qg', '');
-            img.style.height = '0px';
-            img.style.width = '0px';
-            const cs = getComputedStyle(card);
-            const g = parseFloat(cs.paddingTop);
-            const innerW = card.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-            const first = card.firstElementChild.getBoundingClientRect();
-            const last = card.lastElementChild.getBoundingClientRect();
-            const used = (last.bottom - first.top) + g * 2;
-            const avail = Math.max(0, card.clientHeight - used);
-            const ratio = (img.naturalWidth && img.naturalHeight) ? img.naturalHeight / img.naturalWidth : 1.25;
-            const h = Math.min(avail, innerW * ratio);
-            const extra = (avail - h) / slots;
-            card.style.setProperty('--qg', (g + extra) + 'px');
-            img.style.height = h + 'px';
-            img.style.width = (h / ratio) + 'px';
-        }
-        window.addEventListener('resize', fitQuestionLayout);
 
         function updateQuestionUI(data, state) {
             const showQText = state.attempts >= 1 || state.passed;
