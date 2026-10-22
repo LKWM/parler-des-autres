@@ -413,6 +413,90 @@
             `;
         }
 
+        // 이미지는 화면 세로의 50% 이상이 항상 보장되고,
+        // 구성 요소(질문·해석·힌트·피드백·마이크)에 필요한 공간을 뺀 남는 공간은 전부 이미지가 가져감.
+        // 화면이 길면 이미지가 50%를 넘어서 커지고, 남는 공간이 없으면 50% 하한을 유지하며 간격을 줄여 맞춤.
+        // 카드 상하 여백과 요소 간 여백은 모두 동일한 하나의 값.
+        function fitQuestionLayout() {
+            const card = document.getElementById('q-card');
+            const img = document.getElementById('q-img');
+            if (!card || !img) return;
+
+            const blocks = ['qtext-block', 'q-trans', 'hint-cell', 'feedback-msg'].map(id => document.getElementById(id)).filter(Boolean);
+            const micRow = document.getElementById('mic-row');
+            const micH = micRow ? micRow.offsetHeight : 0;
+            const cardH = card.clientHeight;
+            const innerW = card.clientWidth - 16;
+            const imgMin = Math.round(window.innerHeight * 0.5);
+            const qText = document.getElementById('q-text');
+            const trans = document.getElementById('q-trans');
+            const pills = card.querySelectorAll('.q-pill');
+            const fbMsg = document.getElementById('fb-msg');
+            const fbScore = document.getElementById('fb-score');
+            const px = (v, lo, hi) => Math.round(Math.min(hi, Math.max(lo, v)));
+            let k = Math.min(1.12, Math.max(0.72, window.innerHeight / 874));
+            const applyFonts = () => {
+                card.style.setProperty('--qb', Math.max(26, Math.round(32 * k)) + 'px');
+                if (qText) qText.style.fontSize = px(20*k, 13, 24) + 'px';
+                if (trans) trans.style.fontSize = px(14*k, 11, 17) + 'px';
+                pills.forEach(p => { p.style.fontSize = px(16*k, 12, 20) + 'px'; p.style.padding = px(6*k, 2, 8) + 'px ' + px(16*k, 10, 22) + 'px'; });
+                if (fbMsg) fbMsg.style.fontSize = px(14*k, 11, 16) + 'px';
+                if (fbScore) fbScore.style.fontSize = px(12*k, 10, 13) + 'px';
+            };
+            const capWidth = (h) => { let w = Math.round(h / 1.25); if (w > innerW) { w = innerW; h = Math.round(w * 1.25); } return [w, h]; };
+            const blocksH = () => blocks.reduce((a, el) => a + el.offsetHeight, 0);
+
+            applyFonts();
+            let bH = blocksH();
+            const Gbase = Math.max(4, Math.round(8 * k));
+            let imgFloor = imgMin;
+            { let wf = Math.round(imgFloor / 1.25); if (wf > innerW) { wf = innerW; imgFloor = Math.round(wf * 1.25); } }
+            let imgH = cardH - micH - bH - 7 * Gbase;
+            if (imgH < imgFloor) imgH = imgFloor;
+            let G = (cardH - imgH - micH - bH) / 7;
+            for (let i = 0; i < 6 && G < 2 && k > 0.6; i++) {
+                k *= 0.94;
+                applyFonts();
+                bH = blocksH();
+                G = (cardH - imgH - micH - bH) / 7;
+            }
+            const Gap = Math.max(2, Math.round(G * 10) / 10);
+            let imgFinal = cardH - micH - bH - 7 * Gap;
+            if (imgFinal < imgFloor) imgFinal = imgFloor;
+            let wFinal = Math.round(imgFinal / 1.25);
+            let GapF = Gap;
+            if (wFinal > innerW) {
+                wFinal = innerW;
+                imgFinal = Math.round(wFinal * 1.25);
+                GapF = Math.max(2, Math.round((cardH - imgFinal - micH - bH) / 7 * 10) / 10);
+            }
+            img.style.width = wFinal + 'px';
+            img.style.height = imgFinal + 'px';
+            card.style.setProperty('--qg', GapF + 'px');
+        }
+
+        window.addEventListener('resize', () => { if (document.getElementById('q-card')) fitQuestionLayout(); });
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (document.getElementById('q-card')) fitQuestionLayout(); });
+        function watchQuestionLayout() {
+            const img = document.getElementById('q-img');
+            if (img && !img.dataset.fitBound) {
+                img.dataset.fitBound = '1';
+                img.addEventListener('load', () => fitQuestionLayout());
+            }
+            const card = document.getElementById('q-card');
+            if (card && window.ResizeObserver && !card.dataset.fitBound) {
+                card.dataset.fitBound = '1';
+                new ResizeObserver(() => {
+                    if (card.dataset.fitting) return;
+                    card.dataset.fitting = '1';
+                    fitQuestionLayout();
+                    requestAnimationFrame(() => { delete card.dataset.fitting; });
+                }).observe(card);
+            }
+            setTimeout(() => { if (document.getElementById('q-card')) fitQuestionLayout(); }, 80);
+            setTimeout(() => { if (document.getElementById('q-card')) fitQuestionLayout(); }, 350);
+        }
+
         function renderQuestion(data) {
             const state = getExerciseState(currentIndex);
 
@@ -427,55 +511,49 @@
                             Regardez l'image et répondez à la question.
                         </h3>
                     </div>
-                    
-                    <div class="bg-white w-full p-4 rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center gap-4 shrink-1 min-h-0 z-10 flex-1 overflow-hidden">
-                        
-                        <div class="flex-1 w-full flex items-center justify-center min-h-0 overflow-hidden rounded-xl">
-                            <img src="${data.image}" class="max-h-full max-w-full object-contain" alt="Question Image">
-                        </div>
-                        
-                        <div class="w-full flex flex-col items-center shrink-0 pt-2 space-y-4 bg-white z-20 hint-area overflow-y-auto" style="max-height: 50%;">
-                            
-                            <div id="qtext-block" class="invisible w-full flex flex-col items-center gap-1 mb-2">
-                                <div class="flex items-center justify-center gap-2 w-full px-2">
-                                    <button id="q-audio-btn" onclick="playAudio('${data.qAudio}')" class="invisible w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors shadow-sm shrink-0"><i class="ph ph-speaker-high text-lg"></i></button>
-                                    <h2 class="text-xl font-bold text-gray-800 text-center leading-snug">${data.qText}</h2>
-                                </div>
-                                <p id="q-trans" class="invisible text-sm text-gray-500 text-center px-4">${data.qTrans}</p>
-                            </div>
 
-                            <div class="text-center w-full">
-                                <div class="grid w-full">
-                                    <p id="hint1" class="invisible col-start-1 row-start-1 justify-self-center text-lg text-indigo-600 font-medium bg-indigo-50 px-4 py-2 rounded-lg">${data.hint1}</p>
-                                    <p id="hint2" class="invisible col-start-1 row-start-1 justify-self-center text-lg text-orange-600 font-medium bg-orange-50 px-4 py-2 rounded-lg">Mot clé : ${data.hint2}</p>
-                                    <div id="hint3" class="invisible col-start-1 row-start-1 justify-self-center flex items-center justify-center gap-2">
-                                        ${data.aAudio ? `
-                                            <button id="a-audio-btn" onclick="playAudio('${data.aAudio}')" class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition-colors">
-                                                <i class="ph ph-speaker-high text-lg"></i>
-                                            </button>
-                                        ` : ''}
-                                        <p class="text-lg text-green-600 font-bold bg-green-50 px-4 py-2 rounded-lg">${data.hint3}</p>
-                                    </div>
-                                </div>
-                            </div>
-                                
-                            <div id="feedback-msg" class="min-h-6 w-full text-center text-sm font-bold flex flex-col items-center gap-0.5">
-                                <span id="fb-msg" class="invisible">\u00A0</span>
-                                <span id="fb-score" class="invisible text-xs font-normal">\u00A0</span>
-                            </div>
+                    <div id="q-card" class="bg-white w-full rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center z-10 flex-1 min-h-0 overflow-hidden" style="padding: var(--qg, 0.5rem) 0.5rem; gap: var(--qg, 0.5rem);">
 
+                        <img id="q-img" src="${data.image}" class="rounded-xl object-cover shrink-0" alt="Question Image">
+
+                        <div id="qtext-block" class="invisible w-full flex items-center justify-center gap-2 px-2 shrink-0">
+                            <button id="q-audio-btn" onclick="playAudio('${data.qAudio}')" class="invisible rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors shadow-sm shrink-0" style="width: var(--qb, 32px); height: var(--qb, 32px);"><i class="ph ph-speaker-high" style="font-size: calc(var(--qb, 32px) * 0.56);"></i></button>
+                            <h2 id="q-text" class="font-bold text-gray-800 text-center leading-snug">${data.qText}</h2>
                         </div>
 
-                        <div class="w-full flex justify-center pt-2">
-                            <button id="record-btn" class="w-14 h-14 rounded-full bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition-all ring-4 ring-transparent shadow-md hover:scale-105">
-                                <i class="ph ph-microphone text-2xl"></i>
+                        <p id="q-trans" class="invisible text-gray-500 text-center px-2 leading-snug shrink-0">${data.qTrans}</p>
+
+                        <div id="hint-cell" class="grid w-full shrink-0">
+                            <p id="hint1" class="q-pill invisible col-start-1 row-start-1 justify-self-center text-indigo-600 font-medium bg-indigo-50 rounded-lg">${data.hint1}</p>
+                            <p id="hint2" class="q-pill invisible col-start-1 row-start-1 justify-self-center text-orange-600 font-medium bg-orange-50 rounded-lg">Mot clé : ${data.hint2}</p>
+                            <div id="hint3" class="invisible col-start-1 row-start-1 justify-self-center flex items-center gap-2">
+                                ${data.aAudio ? `
+                                    <button id="a-audio-btn" onclick="playAudio('${data.aAudio}')" class="rounded-full bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition-colors shrink-0" style="width: var(--qb, 32px); height: var(--qb, 32px);"><i class="ph ph-speaker-high" style="font-size: calc(var(--qb, 32px) * 0.56);"></i></button>
+                                ` : ''}
+                                <p class="q-pill text-green-600 font-bold bg-green-50 rounded-lg">${data.hint3}</p>
+                            </div>
+                        </div>
+
+                        <div id="feedback-msg" class="w-full flex flex-col items-center shrink-0" style="gap: max(2px, calc(var(--qg, 8px) * 0.25));">
+                            <span id="fb-msg" class="invisible font-bold whitespace-nowrap max-w-full overflow-hidden text-ellipsis">\u00A0</span>
+                            <span id="fb-score" class="invisible font-normal text-gray-400 whitespace-nowrap max-w-full overflow-hidden text-ellipsis">\u00A0</span>
+                        </div>
+
+                        <div id="mic-row" class="w-full flex justify-center shrink-0">
+                            <button id="record-btn" class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-red-100 text-red-500 hover:bg-red-200 flex items-center justify-center transition-all ring-4 ring-transparent shadow-md">
+                                <i class="ph ph-microphone text-3xl md:text-4xl"></i>
                             </button>
                         </div>
+
                     </div>
                 </div>
             `;
 
             updateQuestionUI(data, state);
+            fitQuestionLayout();
+            requestAnimationFrame(() => fitQuestionLayout());
+            watchQuestionLayout();
+
 
             const recordBtn = document.getElementById('record-btn');
 
@@ -510,24 +588,24 @@
             const fbScore = document.getElementById('fb-score');
             if (fbMsg && fbScore) {
                 if (state.passed) {
-                    fbMsg.className = 'text-green-600';
+                    fbMsg.className = 'font-bold whitespace-nowrap max-w-full overflow-hidden text-ellipsis text-green-600';
                     fbMsg.textContent = 'Très bien. Passons à la question suivante.';
                 } else if (state.attempts >= 3) {
-                    fbMsg.className = 'text-green-600';
+                    fbMsg.className = 'font-bold whitespace-nowrap max-w-full overflow-hidden text-ellipsis text-green-600';
                     fbMsg.textContent = 'Passons à la question suivante.';
                 } else if (state.attempts > 0) {
-                    fbMsg.className = 'text-orange-500';
+                    fbMsg.className = 'font-bold whitespace-nowrap max-w-full overflow-hidden text-ellipsis text-orange-500';
                     fbMsg.textContent = 'Vous y êtes presque. Essayez encore une fois.';
                 } else {
-                    fbMsg.className = 'invisible';
+                    fbMsg.className = 'invisible font-bold whitespace-nowrap';
                     fbMsg.textContent = '\u00A0';
                 }
 
                 if (state.attempts > 0) {
-                    fbScore.className = 'text-gray-400 text-xs font-normal';
+                    fbScore.className = 'text-gray-400 font-normal whitespace-nowrap max-w-full overflow-hidden text-ellipsis';
                     fbScore.textContent = `"${state.lastText || ''}" (${state.lastScore ?? '?'}%)`;
                 } else {
-                    fbScore.className = 'invisible text-xs font-normal';
+                    fbScore.className = 'invisible font-normal whitespace-nowrap';
                     fbScore.textContent = '\u00A0';
                 }
             }
@@ -583,22 +661,22 @@
                             const st = getExerciseState(currentIndex);
                             if (!st.passed && st.attempts < 3) {
                                 recordBtn.classList.remove('bg-red-500', 'text-white', 'ring-red-200');
-                                recordBtn.classList.add('bg-red-50', 'text-red-500', 'hover:bg-red-100');
-                                recordBtn.innerHTML = `<i class="ph ph-microphone text-2xl"></i>`;
+                                recordBtn.classList.add('bg-red-100', 'text-red-500', 'hover:bg-red-200');
+                                recordBtn.innerHTML = `<i class="ph ph-microphone text-3xl md:text-4xl"></i>`;
                             }
                         }
-                        setQuestionStatus('Analyse...', 'text-gray-400 text-xs');
+                        setQuestionStatus('Analyse...', 'text-gray-400 font-bold whitespace-nowrap');
                     };
                     
                     mediaRecorder.start();
                     isRecording = true;
                     
                     if (recordBtn) {
-                        recordBtn.classList.remove('bg-red-50', 'text-red-500', 'hover:bg-red-100');
+                        recordBtn.classList.remove('bg-red-100', 'text-red-500', 'hover:bg-red-200');
                         recordBtn.classList.add('bg-red-500', 'text-white', 'ring-red-200');
-                        recordBtn.innerHTML = `<i class="ph ph-stop text-2xl"></i>`;
+                        recordBtn.innerHTML = `<i class="ph ph-stop text-3xl md:text-4xl"></i>`;
                     }
-                    setQuestionStatus('Enregistrement...', 'text-indigo-600 animate-pulse text-xs');
+                    setQuestionStatus('Enregistrement...', 'text-indigo-600 animate-pulse font-bold whitespace-nowrap');
 
                     // Auto-stop after 8 seconds
                     recordingTimeout = setTimeout(() => {
@@ -620,8 +698,8 @@
                     isRecording = false;
                     if (recordBtn) {
                         recordBtn.classList.remove('bg-red-500', 'text-white', 'ring-red-200');
-                        recordBtn.classList.add('bg-red-50', 'text-red-500', 'hover:bg-red-100');
-                        recordBtn.innerHTML = `<i class="ph ph-microphone text-2xl"></i>`;
+                        recordBtn.classList.add('bg-red-100', 'text-red-500', 'hover:bg-red-200');
+                        recordBtn.innerHTML = `<i class="ph ph-microphone text-3xl md:text-4xl"></i>`;
                     }
                 }
             }
