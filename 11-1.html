@@ -425,10 +425,10 @@
             `;
         }
 
-        // 이미지는 절대 수정하지 않는다(비트맵·비율·잘라내기 금지). 내부 여백은 canvas로 측정해
-        // 여백 계산에만 반영한다 — 보이는 그림의 위 여백과 마이크 아래 여백이 같아지도록
-        // 이미지 박스의 위치를 내부 여백만큼 조정하고(내부 흰 여백 영역만 화면 경계에서 숨겨짐),
-        // 남는 공간은 위/아래·요소 간 여백 하나로 균등 배분해 마이크-하단선 여백을 확보한다.
+        // 이미지는 절대 수정하지 않고 위치도 그대로 둔다(비트맵·비율·이동·잘라내기 모두 금지).
+        // 이미지 내부의 흰 여백은 canvas로 측정해 계산에만 반영한다 —
+        // 마이크 버튼 아래 여백 = (이미지 위 여백) + (이미지 안의 여백)으로 확보해
+        // 화면에 보이는 그림의 위 여백과 마이크 아래 여백이 정확히 같아진다.
         const IMG_META = {};
         function analyzeImage(imgEl) {
             const src = imgEl.getAttribute('src');
@@ -487,11 +487,11 @@
                 if (fbMsg) lh(fbMsg).style.fontSize = (14 * sc).toFixed(2) + 'px';
                 if (fbScore) lh(fbScore).style.fontSize = (12 * sc).toFixed(2) + 'px';
             };
-            const setImg = (w, h, mt, mb) => {
+            const setImg = (w, h) => {
                 imgEl.style.width = w.toFixed(2) + 'px';
                 imgEl.style.height = h.toFixed(2) + 'px';
-                imgEl.style.marginTop = mt.toFixed(2) + 'px';
-                imgEl.style.marginBottom = mb.toFixed(2) + 'px';
+                imgEl.style.marginTop = '0px';
+                imgEl.style.marginBottom = '0px';
             };
 
             applyFonts(1);
@@ -501,9 +501,10 @@
                 const lbH = leftBox ? leftBox.clientHeight : cardH;
                 const lbW = leftBox ? leftBox.clientWidth : cardW / 2;
                 let h = Math.min(lbH * 0.8, lbW * 1.25);
-                setImg(h / 1.25, h, 0, 0);
+                setImg(h / 1.25, h);
                 const sc = cardH / REF;
                 applyFonts(sc);
+                card.style.paddingBottom = '';
                 card.style.setProperty('--qg', Math.max(0.5, 8 * sc).toFixed(2) + 'px');
                 return;
             }
@@ -513,24 +514,25 @@
             let imgMin = window.innerHeight * 0.45;
             if (imgMin / 1.25 > innerW) imgMin = innerW * 1.25;
             let sc = cardH / REF;
-            let imgH = cardH - micH - K * sc;
-            if (imgH < imgMin) { imgH = imgMin; sc = Math.max(0.02, (cardH - imgMin - micH) / K); }
+            let imgH = (cardH - micH - K * sc) / (1 + fT);
+            if (imgH < imgMin) { imgH = imgMin; sc = Math.max(0.02, (cardH - imgMin * (1 + fT) - micH) / K); }
             let imgW = imgH / 1.25;
             if (imgW > innerW) { imgW = innerW; imgH = imgW * 1.25; }
-            setImg(imgW, imgH, -fT * imgH, -fB * imgH);
+            setImg(imgW, imgH);
             for (let i = 0; i < 4; i++) {
                 applyFonts(sc);
                 const C = bH();
-                let g = (cardH - imgH * (1 - fT - fB) - micH - C) / 7;
+                let g = (cardH - imgH * (1 + fT) - micH - C) / 7;
                 if (g < 0.5 && i < 3) { sc *= 0.95; continue; }
                 if (g < 0.5) {
-                    imgH = Math.max(40, (cardH - micH - C - 3.5) / Math.max(0.1, 1 - fT - fB));
+                    imgH = Math.max(40, (cardH - micH - C - 3.5) / (1 + fT));
                     imgW = imgH / 1.25;
                     if (imgW > innerW) { imgW = innerW; imgH = imgW * 1.25; }
-                    setImg(imgW, imgH, -fT * imgH, -fB * imgH);
-                    g = (cardH - imgH * (1 - fT - fB) - micH - C) / 7;
+                    setImg(imgW, imgH);
+                    g = (cardH - imgH * (1 + fT) - micH - C) / 7;
                 }
                 card.style.setProperty('--qg', Math.max(0.5, g).toFixed(2) + 'px');
+                card.style.paddingBottom = (Math.max(0.5, g) + fT * imgH).toFixed(2) + 'px'; // 마이크 아래 = 이미지 위 여백 + 이미지 안의 여백
                 return;
             }
         }
