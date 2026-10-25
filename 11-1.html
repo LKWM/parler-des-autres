@@ -413,10 +413,9 @@
             `;
         }
 
-        // 이미지는 화면 세로의 50% 이상이 항상 보장되고,
-        // 구성 요소(질문·해석·힌트·피드백·마이크)에 필요한 공간을 뺀 남는 공간은 전부 이미지가 가져감.
-        // 화면이 길면 이미지가 50%를 넘어서 커지고, 남는 공간이 없으면 50% 하한을 유지하며 간격을 줄여 맞춤.
-        // 카드 상하 여백과 요소 간 여백은 모두 동일한 하나의 값.
+        // 우선순위: 1) 어떤 화면에서도 잘림 없음 2) 이미지는 화면 세로 50% 이상, 남는 공간은 전부 이미지가 흡수
+        // 3) 공간이 부족하면 폰트·간격을 줄여 50% 하한을 지키고, 그래도 불가능한 초단폭 화면에서만 이미지를 남는 만큼으로 축소.
+        // 카드 상하 여백과 요소 간 여백은 동일한 하나의 값.
         function fitQuestionLayout() {
             const card = document.getElementById('q-card');
             const img = document.getElementById('q-img');
@@ -427,54 +426,56 @@
             const micH = micRow ? micRow.offsetHeight : 0;
             const cardH = card.clientHeight;
             const innerW = card.clientWidth - 16;
-            const imgMin = Math.round(window.innerHeight * 0.5);
             const qText = document.getElementById('q-text');
             const trans = document.getElementById('q-trans');
             const pills = card.querySelectorAll('.q-pill');
             const fbMsg = document.getElementById('fb-msg');
             const fbScore = document.getElementById('fb-score');
             const px = (v, lo, hi) => Math.round(Math.min(hi, Math.max(lo, v)));
-            let k = Math.min(1.12, Math.max(0.72, window.innerHeight / 874));
+            let k = Math.min(1.12, Math.max(0.55, window.innerHeight / 874));
             const applyFonts = () => {
-                card.style.setProperty('--qb', Math.max(26, Math.round(32 * k)) + 'px');
-                if (qText) qText.style.fontSize = px(20*k, 13, 24) + 'px';
-                if (trans) trans.style.fontSize = px(14*k, 11, 17) + 'px';
-                pills.forEach(p => { p.style.fontSize = px(16*k, 12, 20) + 'px'; p.style.padding = px(6*k, 2, 8) + 'px ' + px(16*k, 10, 22) + 'px'; });
-                if (fbMsg) fbMsg.style.fontSize = px(14*k, 11, 16) + 'px';
-                if (fbScore) fbScore.style.fontSize = px(12*k, 10, 13) + 'px';
+                card.style.setProperty('--qb', px(32 * k, 24, 32) + 'px');
+                const lh = el => { el.style.lineHeight = '1.3'; return el; };
+                if (qText) lh(qText).style.fontSize = px(20 * k, 12, 24) + 'px';
+                if (trans) lh(trans).style.fontSize = px(14 * k, 10, 17) + 'px';
+                pills.forEach(p => { lh(p).style.fontSize = px(16 * k, 11, 20) + 'px'; p.style.padding = px(6 * k, 2, 8) + 'px ' + px(16 * k, 10, 22) + 'px'; });
+                if (fbMsg) lh(fbMsg).style.fontSize = px(14 * k, 10, 16) + 'px';
+                if (fbScore) lh(fbScore).style.fontSize = px(12 * k, 9, 13) + 'px';
             };
-            const capWidth = (h) => { let w = Math.round(h / 1.25); if (w > innerW) { w = innerW; h = Math.round(w * 1.25); } return [w, h]; };
-            const blocksH = () => blocks.reduce((a, el) => a + el.offsetHeight, 0);
+            const bH = () => blocks.reduce((a, el) => a + el.offsetHeight, 0);
+            const capW = (h) => { let w = Math.round(h / 1.25); if (w > innerW) { w = innerW; h = Math.round(w * 1.25); } return [w, h]; };
+            const apply = (h, g) => {
+                const [w, hh] = capW(h);
+                img.style.width = w + 'px';
+                img.style.height = hh + 'px';
+                card.style.setProperty('--qg', g + 'px');
+            };
 
             applyFonts();
-            let bH = blocksH();
-            const Gbase = Math.max(4, Math.round(8 * k));
-            let imgFloor = imgMin;
-            { let wf = Math.round(imgFloor / 1.25); if (wf > innerW) { wf = innerW; imgFloor = Math.round(wf * 1.25); } }
-            let imgH = cardH - micH - bH - 7 * Gbase;
-            if (imgH < imgFloor) imgH = imgFloor;
-            let G = (cardH - imgH - micH - bH) / 7;
-            for (let i = 0; i < 6 && G < 2 && k > 0.6; i++) {
-                k *= 0.94;
-                applyFonts();
-                bH = blocksH();
-                G = (cardH - imgH - micH - bH) / 7;
-            }
-            const Gap = Math.max(2, Math.round(G * 10) / 10);
-            let imgFinal = cardH - micH - bH - 7 * Gap;
-            if (imgFinal < imgFloor) imgFinal = imgFloor;
-            let wFinal = Math.round(imgFinal / 1.25);
-            let GapF = Gap;
-            if (wFinal > innerW) {
-                wFinal = innerW;
-                imgFinal = Math.round(wFinal * 1.25);
-                GapF = Math.max(2, Math.round((cardH - imgFinal - micH - bH) / 7 * 10) / 10);
-            }
-            img.style.width = wFinal + 'px';
-            img.style.height = imgFinal + 'px';
-            card.style.setProperty('--qg', GapF + 'px');
-        }
+            let imgMin = Math.round(window.innerHeight * 0.5);
+            { const [w, hh] = capW(imgMin); imgMin = hh; }
 
+            // 1) 넉넉한 화면: 구성 요소 배치 후 남는 공간은 전부 이미지로
+            let imgH = cardH - micH - bH() - 7 * Math.max(4, Math.round(8 * k));
+            if (imgH >= imgMin) {
+                const [w, hh] = capW(imgH);
+                const Gap = Math.max(2, Math.round(((cardH - hh - micH - bH()) / 7) * 10) / 10);
+                apply(hh, Gap);
+                return;
+            }
+            // 2) 50% 하한 유지: 폰트·간격을 줄여 맞춤
+            for (let i = 0; i < 10; i++) {
+                const G = (cardH - imgMin - micH - bH()) / 7;
+                if (G >= 2) { apply(imgMin, Math.round(G * 10) / 10); return; }
+                if (k <= 0.56) break;
+                k *= 0.93;
+                applyFonts();
+            }
+            // 3) 물리적으로 불가능한 초단폭 화면: 잘림 방지가 최우선
+            imgH = Math.max(80, cardH - micH - bH() - 14);
+            const [w3, h3] = capW(imgH);
+            apply(h3, 2);
+        }
         window.addEventListener('resize', () => { if (document.getElementById('q-card')) fitQuestionLayout(); });
         if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (document.getElementById('q-card')) fitQuestionLayout(); });
         function watchQuestionLayout() {
@@ -505,7 +506,7 @@
             }
 
             contentArea.innerHTML = `
-                <div class="fade-in w-full h-full flex flex-col items-center max-w-2xl mx-auto py-2">
+                <div class="fade-in w-full h-full flex flex-col items-center max-w-2xl mx-auto">
                     <div class="w-full flex justify-center pb-2 shrink-0">
                         <h3 class="text-xs text-indigo-600 uppercase tracking-wider text-center font-bold">
                             Regardez l'image et répondez à la question.
@@ -534,7 +535,7 @@
                             </div>
                         </div>
 
-                        <div id="feedback-msg" class="w-full flex flex-col items-center shrink-0" style="gap: max(2px, calc(var(--qg, 8px) * 0.25));">
+                        <div id="feedback-msg" class="w-full flex flex-col items-center shrink-0" style="gap: max(1px, calc(var(--qg, 8px) * 0.25));">
                             <span id="fb-msg" class="invisible font-bold whitespace-nowrap max-w-full overflow-hidden text-ellipsis">\u00A0</span>
                             <span id="fb-score" class="invisible font-normal text-gray-400 whitespace-nowrap max-w-full overflow-hidden text-ellipsis">\u00A0</span>
                         </div>
