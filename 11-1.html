@@ -54,6 +54,17 @@
             scrollbar-color: #cbd5e1 transparent;
         }
     </style>
+    <style>
+        /* 화면 가로 길이가 세로의 120%를 넘으면 병렬 구성: 왼쪽 중앙 이미지, 오른쪽 중앙 텍스트.
+           마이크는 첫 시도(안내 메시지 전) 카드 중앙, 메시지 표시 시점부터 메시지 하단. */
+        .q-land { flex-direction: row !important; align-items: stretch !important; }
+        .q-land > #q-split { display: flex; flex-direction: row; flex: 1 1 auto; min-height: 0; width: 100%; }
+        .q-land > #q-split > #q-left { display: flex; flex: 1 1 0; min-width: 0; align-items: center; justify-content: center; }
+        .q-land > #q-split > #q-right { display: flex; flex: 1 1 0; min-width: 0; flex-direction: column; align-items: center; justify-content: center; }
+        .q-land > #q-split > #q-right > * { flex: 0 0 auto; }
+        .q-land #mic-row #record-btn { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 30; }
+        .q-land #mic-row.msg-shown #record-btn { position: static; transform: none; left: auto; top: auto; }
+    </style>
 </head>
 <body class="bg-white">
 
@@ -413,65 +424,119 @@
             `;
         }
 
+        // 이미지 자체의 내부 여백(흰 배경)을 실시간 측정해 잘라낸다 — 보이는 이미지를 기준으로 여백과 45%를 계산.
+        const IMG_META = {};
+        function analyzeImage(imgEl) {
+            const src = imgEl.getAttribute('src');
+            if (!src || IMG_META[src] !== undefined) { fitQuestionLayout(); return; }
+            try {
+                const W = imgEl.naturalWidth, H = imgEl.naturalHeight;
+                if (!W || !H) { IMG_META[src] = null; fitQuestionLayout(); return; }
+                const c = document.createElement('canvas'); c.width = W; c.height = H;
+                const ctx = c.getContext('2d'); ctx.drawImage(imgEl, 0, 0);
+                const d = ctx.getImageData(0, 0, W, H).data;
+                const isBg = (x, y) => { const i = (y * W + x) * 4; if (d[i + 3] <= 24) return true; return d[i] > 245 && d[i + 1] > 245 && d[i + 2] > 245; };
+                let top = -1, bot = -1, left = -1, right = -1;
+                outer1: for (let y = 0; y < H; y++) for (let x = 0; x < W; x += 4) if (!isBg(x, y)) { top = y; break outer1; }
+                outer2: for (let y = H - 1; y >= 0; y--) for (let x = 0; x < W; x += 4) if (!isBg(x, y)) { bot = y; break outer2; }
+                outer3: for (let x = 0; x < W; x++) for (let y = 0; y < H; y += 4) if (!isBg(x, y)) { left = x; break outer3; }
+                outer4: for (let x = W - 1; x >= 0; x--) for (let y = 0; y < H; y += 4) if (!isBg(x, y)) { right = x; break outer4; }
+                IMG_META[src] = (top < 0 || left < 0) ? null
+                    : { fT: top / H, fB: (H - 1 - bot) / H, fL: left / W, fR: (W - 1 - right) / W,
+                        natW: W, natH: H, rC: (bot - top + 1) / (right - left + 1) };
+            } catch (e) { IMG_META[src] = null; }
+            fitQuestionLayout();
+        }
+
         // 모든 크기·간격은 카드 높이 대비 순수 비율(상대값)로만 결정된다. 기기별 하한선·상한선·보정값 없음.
-        // 구성 요소는 화면이 작아지면 비율 그대로 무한히 축소되고, 이미지는 화면 세로의 50% 이상을 유지하며
-        // 남는 공간을 전부 흡수한다(화면이 길면 50%를 넘어 커진다). 카드 상하 여백과 요소 간 여백은 동일한 하나의 값.
-        // 마이크·하단바·표지만 프로그램 공통 규격(프로그램 전체와 동일 지시).
+        // 세로 화면: 이미지(보이는 내용 기준)는 화면 세로의 45% 이상, 남는 공간 전부 흡수, 위/아래·요소 간 여백 동일.
+        // 가로 화면(가로 > 세로x1.2): 좌우 1:1 병렬 — 왼쪽 중앙 이미지(높이 = 박스의 80%), 오른쪽 중앙 텍스트.
+        // 마이크는 프로그램 공통 규격(1-9강과 동일한 클래스).
         function fitQuestionLayout() {
             const card = document.getElementById('q-card');
+            const wrap = document.getElementById('q-imgwrap');
             const imgEl = document.getElementById('q-img');
-            if (!card || !imgEl) return;
+            if (!card || !wrap || !imgEl) return;
 
             const blocks = ['qtext-block', 'q-trans', 'hint-cell', 'feedback-msg'].map(id => document.getElementById(id)).filter(Boolean);
             const micRow = document.getElementById('mic-row');
+            const micBtn = document.getElementById('record-btn');
             const micH = micRow ? micRow.offsetHeight : 0;
             const cardH = card.clientHeight;
-            const innerW = card.clientWidth - window.innerHeight * 0.012;
+            const cardW = card.clientWidth;
+            const land = window.innerWidth > window.innerHeight * 1.2;
+            card.classList.toggle('q-land', land);
+            if (micRow) micRow.style.minHeight = land && micBtn ? micBtn.offsetHeight + 'px' : '';
+
+            const meta = IMG_META[imgEl.getAttribute('src')] || null;
+            const rC = meta ? meta.rC : 1.25;
             const qText = document.getElementById('q-text');
             const trans = document.getElementById('q-trans');
             const pills = card.querySelectorAll('.q-pill');
             const fbMsg = document.getElementById('fb-msg');
             const fbScore = document.getElementById('fb-score');
-            const REF = 700; // 비율 기준: 구성 요소 크기는 카드 높이의 일정 비율(예: 질문 글씨 = 카드 높이의 2/70)
+            const REF = 700;
             const bH = () => blocks.reduce((a, el) => a + el.offsetHeight, 0);
             const lh = el => { el.style.lineHeight = '1.3'; return el; };
-            const applyFonts = (s) => {
-                card.style.setProperty('--qb', (32 * s).toFixed(2) + 'px');
-                if (qText) lh(qText).style.fontSize = (20 * s).toFixed(2) + 'px';
-                if (trans) lh(trans).style.fontSize = (14 * s).toFixed(2) + 'px';
-                pills.forEach(p => { lh(p).style.fontSize = (16 * s).toFixed(2) + 'px'; p.style.padding = (6 * s).toFixed(2) + 'px ' + (16 * s).toFixed(2) + 'px'; });
-                if (fbMsg) lh(fbMsg).style.fontSize = (14 * s).toFixed(2) + 'px';
-                if (fbScore) lh(fbScore).style.fontSize = (12 * s).toFixed(2) + 'px';
+            const applyFonts = (sc) => {
+                card.style.setProperty('--qb', (32 * sc).toFixed(2) + 'px');
+                if (qText) lh(qText).style.fontSize = (20 * sc).toFixed(2) + 'px';
+                if (trans) lh(trans).style.fontSize = (14 * sc).toFixed(2) + 'px';
+                pills.forEach(p => { lh(p).style.fontSize = (16 * sc).toFixed(2) + 'px'; p.style.padding = (6 * sc).toFixed(2) + 'px ' + (16 * sc).toFixed(2) + 'px'; });
+                if (fbMsg) lh(fbMsg).style.fontSize = (14 * sc).toFixed(2) + 'px';
+                if (fbScore) lh(fbScore).style.fontSize = (12 * sc).toFixed(2) + 'px';
             };
-            const applyImg = (h) => {
-                let w = h / 1.25;
-                if (w > innerW) { w = innerW; h = w * 1.25; }
-                imgEl.style.width = w.toFixed(2) + 'px';
-                imgEl.style.height = h.toFixed(2) + 'px';
-                return h;
+            const applyWrap = (w, h) => {
+                wrap.style.width = w.toFixed(2) + 'px';
+                wrap.style.height = h.toFixed(2) + 'px';
+                if (meta) {
+                    const k = 1 / (1 - meta.fL - meta.fR);
+                    const dw = w * k;
+                    const dh = dw * (meta.natH / meta.natW);
+                    imgEl.style.width = dw.toFixed(2) + 'px';
+                    imgEl.style.height = dh.toFixed(2) + 'px';
+                    imgEl.style.left = (-meta.fL * dw).toFixed(2) + 'px';
+                    imgEl.style.top = (-meta.fT * dh).toFixed(2) + 'px';
+                } else {
+                    imgEl.style.width = '100%'; imgEl.style.height = '100%';
+                    imgEl.style.left = '0px'; imgEl.style.top = '0px';
+                }
             };
 
-            // 기준 비율(s=1)에서의 구성 요소 합 측정 + 간격 7개(기준 간격 8px) 예산
             applyFonts(1);
+
+            if (land) {
+                const leftBox = document.getElementById('q-left');
+                const lbH = leftBox ? leftBox.clientHeight : cardH;
+                const lbW = leftBox ? leftBox.clientWidth : cardW / 2;
+                let h = lbH * 0.8;
+                let w = h / rC;
+                if (w > lbW) { w = lbW; h = w * rC; }
+                applyWrap(w, h);
+                const sc = cardH / REF;
+                applyFonts(sc);
+                card.style.setProperty('--qg', Math.max(0.5, 8 * sc).toFixed(2) + 'px');
+                return;
+            }
+
+            const innerW = cardW - window.innerHeight * 0.012;
             const K = bH() + 56;
-
-            // 이미지 50% 하한(폭이 물리적으로 좁으면 폭 제한값)
-            let imgMin = window.innerHeight * 0.5;
-            if (imgMin / 1.25 > innerW) imgMin = innerW * 1.25;
-
-            let s = cardH / REF;
-            let imgH = cardH - micH - K * s;
-            if (imgH < imgMin) { imgH = imgMin; s = Math.max(0.02, (cardH - imgMin - micH) / K); }
-            imgH = applyImg(imgH);
-
-            // 실측 높이로 남는 공간을 간격 하나로 균등 배분(줄바꿈 등 오차까지 흡수)
+            let imgMin = window.innerHeight * 0.45;
+            if (imgMin / rC > innerW) imgMin = innerW * rC;
+            let sc = cardH / REF;
+            let imgH = cardH - micH - K * sc;
+            if (imgH < imgMin) { imgH = imgMin; sc = Math.max(0.02, (cardH - imgMin - micH) / K); }
+            let imgW = imgH / rC;
+            if (imgW > innerW) { imgW = innerW; imgH = imgW * rC; }
+            applyWrap(imgW, imgH);
             for (let i = 0; i < 4; i++) {
-                applyFonts(s);
+                applyFonts(sc);
                 const C = bH();
                 let g = (cardH - imgH - micH - C) / 7;
-                if (g < 0.5 && i < 3) { s *= 0.95; continue; }
-                if (g < 0.5) { // 극단적으로 짧은 화면: 잘림 방지가 최우선, 이미지를 남는 만큼으로
-                    imgH = applyImg(Math.max(40, cardH - micH - C - 3.5));
+                if (g < 0.5 && i < 3) { sc *= 0.95; continue; }
+                if (g < 0.5) {
+                    imgH = Math.max(40, cardH - micH - C - 3.5);
+                    applyWrap(imgH / rC, imgH);
                     g = (cardH - imgH - micH - C) / 7;
                 }
                 card.style.setProperty('--qg', Math.max(0.5, g).toFixed(2) + 'px');
@@ -484,7 +549,7 @@
             const img = document.getElementById('q-img');
             if (img && !img.dataset.fitBound) {
                 img.dataset.fitBound = '1';
-                img.addEventListener('load', () => fitQuestionLayout());
+                img.addEventListener('load', () => analyzeImage(img));
             }
             const card = document.getElementById('q-card');
             if (card && window.ResizeObserver && !card.dataset.fitBound) {
@@ -517,7 +582,13 @@
 
                     <div id="q-card" class="bg-white w-full rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center z-10 flex-1 min-h-0 overflow-hidden" style="padding: var(--qg, 0.5rem) 0.6vh; gap: var(--qg, 0.5rem);">
 
-                        <img id="q-img" src="${data.image}" class="rounded-xl object-cover shrink-0" alt="Question Image">
+                        <div id="q-split" class="contents w-full flex-1 min-h-0">
+                        <div id="q-left" class="contents">
+                        <div id="q-imgwrap" class="relative overflow-hidden shrink-0 rounded-xl">
+                            <img id="q-img" src="${data.image}" crossorigin="anonymous" class="absolute max-w-none" alt="Question Image">
+                        </div>
+                        </div>
+                        <div id="q-right" class="contents w-full flex flex-col items-center" style="gap: var(--qg, 0.5rem);">
 
                         <div id="qtext-block" class="invisible w-full flex items-center justify-center gap-2 px-2 shrink-0">
                             <button id="q-audio-btn" onclick="playAudio('${data.qAudio}')" class="invisible rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors shadow-sm shrink-0" style="width: var(--qb, 32px); height: var(--qb, 32px);"><i class="ph ph-speaker-high" style="font-size: calc(var(--qb, 32px) * 0.56);"></i></button>
@@ -548,6 +619,8 @@
                             </button>
                         </div>
 
+                        </div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -618,6 +691,9 @@
                 recordBtn.disabled = true;
                 recordBtn.classList.add('opacity-50', 'cursor-not-allowed');
             }
+
+            const micRowEl = document.getElementById('mic-row');
+            if (micRowEl) micRowEl.classList.toggle('msg-shown', state.attempts > 0 || state.passed);
         }
 
         function setQuestionStatus(text, cls) {
