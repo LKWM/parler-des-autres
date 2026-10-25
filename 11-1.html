@@ -58,9 +58,10 @@
         /* 화면 가로 길이가 세로의 120%를 넘으면 병렬 구성: 왼쪽 중앙 이미지, 오른쪽 중앙 텍스트.
            마이크는 첫 시도(안내 메시지 전) 카드 중앙, 메시지 표시 시점부터 메시지 하단. */
         .q-land { flex-direction: row !important; align-items: stretch !important; }
+        #q-col.q-wide { max-width: none; }
         .q-land > #q-split { display: flex; flex-direction: row; flex: 1 1 auto; min-height: 0; width: 100%; }
         .q-land > #q-split > #q-left { display: flex; flex: 1 1 0; min-width: 0; align-items: center; justify-content: center; }
-        .q-land > #q-split > #q-right { display: flex; flex: 1 1 0; min-width: 0; flex-direction: column; align-items: center; justify-content: center; }
+        .q-land > #q-split > #q-right { display: flex; flex: 1 1 0; min-width: 0; flex-direction: column; align-items: center; justify-content: center; position: relative; }
         .q-land > #q-split > #q-right > * { flex: 0 0 auto; }
         .q-land #mic-row #record-btn { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 30; }
         .q-land #mic-row.msg-shown #record-btn { position: static; transform: none; left: auto; top: auto; }
@@ -424,7 +425,10 @@
             `;
         }
 
-        // 이미지 자체의 내부 여백(흰 배경)을 실시간 측정해 잘라낸다 — 보이는 이미지를 기준으로 여백과 45%를 계산.
+        // 이미지는 절대 수정하지 않는다(비트맵·비율·잘라내기 금지). 내부 여백은 canvas로 측정해
+        // 여백 계산에만 반영한다 — 보이는 그림의 위 여백과 마이크 아래 여백이 같아지도록
+        // 이미지 박스의 위치를 내부 여백만큼 조정하고(내부 흰 여백 영역만 화면 경계에서 숨겨짐),
+        // 남는 공간은 위/아래·요소 간 여백 하나로 균등 배분해 마이크-하단선 여백을 확보한다.
         const IMG_META = {};
         function analyzeImage(imgEl) {
             const src = imgEl.getAttribute('src');
@@ -436,27 +440,22 @@
                 const ctx = c.getContext('2d'); ctx.drawImage(imgEl, 0, 0);
                 const d = ctx.getImageData(0, 0, W, H).data;
                 const isBg = (x, y) => { const i = (y * W + x) * 4; if (d[i + 3] <= 24) return true; return d[i] > 245 && d[i + 1] > 245 && d[i + 2] > 245; };
-                let top = -1, bot = -1, left = -1, right = -1;
+                let top = -1, bot = -1;
                 outer1: for (let y = 0; y < H; y++) for (let x = 0; x < W; x += 4) if (!isBg(x, y)) { top = y; break outer1; }
                 outer2: for (let y = H - 1; y >= 0; y--) for (let x = 0; x < W; x += 4) if (!isBg(x, y)) { bot = y; break outer2; }
-                outer3: for (let x = 0; x < W; x++) for (let y = 0; y < H; y += 4) if (!isBg(x, y)) { left = x; break outer3; }
-                outer4: for (let x = W - 1; x >= 0; x--) for (let y = 0; y < H; y += 4) if (!isBg(x, y)) { right = x; break outer4; }
-                IMG_META[src] = (top < 0 || left < 0) ? null
-                    : { fT: top / H, fB: (H - 1 - bot) / H, fL: left / W, fR: (W - 1 - right) / W,
-                        natW: W, natH: H, rC: (bot - top + 1) / (right - left + 1) };
+                IMG_META[src] = (top < 0) ? null : { fT: top / H, fB: (H - 1 - bot) / H };
             } catch (e) { IMG_META[src] = null; }
             fitQuestionLayout();
         }
 
-        // 모든 크기·간격은 카드 높이 대비 순수 비율(상대값)로만 결정된다. 기기별 하한선·상한선·보정값 없음.
-        // 세로 화면: 이미지(보이는 내용 기준)는 화면 세로의 45% 이상, 남는 공간 전부 흡수, 위/아래·요소 간 여백 동일.
+        // 모든 크기·간격은 카드 높이 대비 순수 비율(상대값)로만 결정된다.
+        // 세로 화면: 이미지(원본 그대로)는 화면 세로의 45% 이상, 보이는 그림 기준으로 위 여백 = 마이크 아래 여백 = 요소 간 여백.
         // 가로 화면(가로 > 세로x1.2): 좌우 1:1 병렬 — 왼쪽 중앙 이미지(높이 = 박스의 80%), 오른쪽 중앙 텍스트.
-        // 마이크는 프로그램 공통 규격(1-9강과 동일한 클래스).
+        // 마이크는 첫 시도(안내 메시지 전) 오른쪽 박스 중앙, 메시지 표시 시점부터 메시지 하단.
         function fitQuestionLayout() {
             const card = document.getElementById('q-card');
-            const wrap = document.getElementById('q-imgwrap');
             const imgEl = document.getElementById('q-img');
-            if (!card || !wrap || !imgEl) return;
+            if (!card || !imgEl) return;
 
             const blocks = ['qtext-block', 'q-trans', 'hint-cell', 'feedback-msg'].map(id => document.getElementById(id)).filter(Boolean);
             const micRow = document.getElementById('mic-row');
@@ -466,10 +465,12 @@
             const cardW = card.clientWidth;
             const land = window.innerWidth > window.innerHeight * 1.2;
             card.classList.toggle('q-land', land);
+            const qCol = document.getElementById('q-col');
+            if (qCol) qCol.classList.toggle('q-wide', land);
             if (micRow) micRow.style.minHeight = land && micBtn ? micBtn.offsetHeight + 'px' : '';
 
             const meta = IMG_META[imgEl.getAttribute('src')] || null;
-            const rC = meta ? meta.rC : 1.25;
+            const fT = meta ? meta.fT : 0, fB = meta ? meta.fB : 0;
             const qText = document.getElementById('q-text');
             const trans = document.getElementById('q-trans');
             const pills = card.querySelectorAll('.q-pill');
@@ -486,21 +487,11 @@
                 if (fbMsg) lh(fbMsg).style.fontSize = (14 * sc).toFixed(2) + 'px';
                 if (fbScore) lh(fbScore).style.fontSize = (12 * sc).toFixed(2) + 'px';
             };
-            const applyWrap = (w, h) => {
-                wrap.style.width = w.toFixed(2) + 'px';
-                wrap.style.height = h.toFixed(2) + 'px';
-                if (meta) {
-                    const k = 1 / (1 - meta.fL - meta.fR);
-                    const dw = w * k;
-                    const dh = dw * (meta.natH / meta.natW);
-                    imgEl.style.width = dw.toFixed(2) + 'px';
-                    imgEl.style.height = dh.toFixed(2) + 'px';
-                    imgEl.style.left = (-meta.fL * dw).toFixed(2) + 'px';
-                    imgEl.style.top = (-meta.fT * dh).toFixed(2) + 'px';
-                } else {
-                    imgEl.style.width = '100%'; imgEl.style.height = '100%';
-                    imgEl.style.left = '0px'; imgEl.style.top = '0px';
-                }
+            const setImg = (w, h, mt, mb) => {
+                imgEl.style.width = w.toFixed(2) + 'px';
+                imgEl.style.height = h.toFixed(2) + 'px';
+                imgEl.style.marginTop = mt.toFixed(2) + 'px';
+                imgEl.style.marginBottom = mb.toFixed(2) + 'px';
             };
 
             applyFonts(1);
@@ -509,10 +500,8 @@
                 const leftBox = document.getElementById('q-left');
                 const lbH = leftBox ? leftBox.clientHeight : cardH;
                 const lbW = leftBox ? leftBox.clientWidth : cardW / 2;
-                let h = lbH * 0.8;
-                let w = h / rC;
-                if (w > lbW) { w = lbW; h = w * rC; }
-                applyWrap(w, h);
+                let h = Math.min(lbH * 0.8, lbW * 1.25);
+                setImg(h / 1.25, h, 0, 0);
                 const sc = cardH / REF;
                 applyFonts(sc);
                 card.style.setProperty('--qg', Math.max(0.5, 8 * sc).toFixed(2) + 'px');
@@ -522,22 +511,24 @@
             const innerW = cardW - window.innerHeight * 0.012;
             const K = bH() + 56;
             let imgMin = window.innerHeight * 0.45;
-            if (imgMin / rC > innerW) imgMin = innerW * rC;
+            if (imgMin / 1.25 > innerW) imgMin = innerW * 1.25;
             let sc = cardH / REF;
             let imgH = cardH - micH - K * sc;
             if (imgH < imgMin) { imgH = imgMin; sc = Math.max(0.02, (cardH - imgMin - micH) / K); }
-            let imgW = imgH / rC;
-            if (imgW > innerW) { imgW = innerW; imgH = imgW * rC; }
-            applyWrap(imgW, imgH);
+            let imgW = imgH / 1.25;
+            if (imgW > innerW) { imgW = innerW; imgH = imgW * 1.25; }
+            setImg(imgW, imgH, -fT * imgH, -fB * imgH);
             for (let i = 0; i < 4; i++) {
                 applyFonts(sc);
                 const C = bH();
-                let g = (cardH - imgH - micH - C) / 7;
+                let g = (cardH - imgH * (1 - fT - fB) - micH - C) / 7;
                 if (g < 0.5 && i < 3) { sc *= 0.95; continue; }
                 if (g < 0.5) {
-                    imgH = Math.max(40, cardH - micH - C - 3.5);
-                    applyWrap(imgH / rC, imgH);
-                    g = (cardH - imgH - micH - C) / 7;
+                    imgH = Math.max(40, (cardH - micH - C - 3.5) / Math.max(0.1, 1 - fT - fB));
+                    imgW = imgH / 1.25;
+                    if (imgW > innerW) { imgW = innerW; imgH = imgW * 1.25; }
+                    setImg(imgW, imgH, -fT * imgH, -fB * imgH);
+                    g = (cardH - imgH * (1 - fT - fB) - micH - C) / 7;
                 }
                 card.style.setProperty('--qg', Math.max(0.5, g).toFixed(2) + 'px');
                 return;
@@ -573,7 +564,7 @@
             }
 
             contentArea.innerHTML = `
-                <div class="fade-in w-full h-full flex flex-col items-center max-w-2xl mx-auto">
+                <div id="q-col" class="fade-in w-full h-full flex flex-col items-center max-w-2xl mx-auto">
                     <div class="w-full flex justify-center pb-2 shrink-0">
                         <h3 class="text-xs text-indigo-600 uppercase tracking-wider text-center font-bold">
                             Regardez l'image et répondez à la question.
@@ -584,9 +575,7 @@
 
                         <div id="q-split" class="contents w-full flex-1 min-h-0">
                         <div id="q-left" class="contents">
-                        <div id="q-imgwrap" class="relative overflow-hidden shrink-0 rounded-xl">
-                            <img id="q-img" src="${data.image}" crossorigin="anonymous" class="absolute max-w-none" alt="Question Image">
-                        </div>
+                        <img id="q-img" src="${data.image}" crossorigin="anonymous" class="rounded-xl object-cover shrink-0" alt="Question Image">
                         </div>
                         <div id="q-right" class="contents w-full flex flex-col items-center" style="gap: var(--qg, 0.5rem);">
 
