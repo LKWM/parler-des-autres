@@ -413,68 +413,70 @@
             `;
         }
 
-        // 우선순위: 1) 어떤 화면에서도 잘림 없음 2) 이미지는 화면 세로 50% 이상, 남는 공간은 전부 이미지가 흡수
-        // 3) 공간이 부족하면 폰트·간격을 줄여 50% 하한을 지키고, 그래도 불가능한 초단폭 화면에서만 이미지를 남는 만큼으로 축소.
-        // 카드 상하 여백과 요소 간 여백은 동일한 하나의 값.
+        // 모든 크기·간격은 카드 높이 대비 순수 비율(상대값)로만 결정된다. 기기별 하한선·상한선·보정값 없음.
+        // 구성 요소는 화면이 작아지면 비율 그대로 무한히 축소되고, 이미지는 화면 세로의 50% 이상을 유지하며
+        // 남는 공간을 전부 흡수한다(화면이 길면 50%를 넘어 커진다). 카드 상하 여백과 요소 간 여백은 동일한 하나의 값.
+        // 마이크·하단바·표지만 프로그램 공통 규격(프로그램 전체와 동일 지시).
         function fitQuestionLayout() {
             const card = document.getElementById('q-card');
-            const img = document.getElementById('q-img');
-            if (!card || !img) return;
+            const imgEl = document.getElementById('q-img');
+            if (!card || !imgEl) return;
 
             const blocks = ['qtext-block', 'q-trans', 'hint-cell', 'feedback-msg'].map(id => document.getElementById(id)).filter(Boolean);
             const micRow = document.getElementById('mic-row');
             const micH = micRow ? micRow.offsetHeight : 0;
             const cardH = card.clientHeight;
-            const innerW = card.clientWidth - 16;
+            const innerW = card.clientWidth - window.innerHeight * 0.012;
             const qText = document.getElementById('q-text');
             const trans = document.getElementById('q-trans');
             const pills = card.querySelectorAll('.q-pill');
             const fbMsg = document.getElementById('fb-msg');
             const fbScore = document.getElementById('fb-score');
-            const px = (v, lo, hi) => Math.round(Math.min(hi, Math.max(lo, v)));
-            let k = Math.min(1.12, Math.max(0.55, window.innerHeight / 874));
-            const applyFonts = () => {
-                card.style.setProperty('--qb', px(32 * k, 24, 32) + 'px');
-                const lh = el => { el.style.lineHeight = '1.3'; return el; };
-                if (qText) lh(qText).style.fontSize = px(20 * k, 12, 24) + 'px';
-                if (trans) lh(trans).style.fontSize = px(14 * k, 10, 17) + 'px';
-                pills.forEach(p => { lh(p).style.fontSize = px(16 * k, 11, 20) + 'px'; p.style.padding = px(6 * k, 2, 8) + 'px ' + px(16 * k, 10, 22) + 'px'; });
-                if (fbMsg) lh(fbMsg).style.fontSize = px(14 * k, 10, 16) + 'px';
-                if (fbScore) lh(fbScore).style.fontSize = px(12 * k, 9, 13) + 'px';
-            };
+            const REF = 700; // 비율 기준: 구성 요소 크기는 카드 높이의 일정 비율(예: 질문 글씨 = 카드 높이의 2/70)
             const bH = () => blocks.reduce((a, el) => a + el.offsetHeight, 0);
-            const capW = (h) => { let w = Math.round(h / 1.25); if (w > innerW) { w = innerW; h = Math.round(w * 1.25); } return [w, h]; };
-            const apply = (h, g) => {
-                const [w, hh] = capW(h);
-                img.style.width = w + 'px';
-                img.style.height = hh + 'px';
-                card.style.setProperty('--qg', g + 'px');
+            const lh = el => { el.style.lineHeight = '1.3'; return el; };
+            const applyFonts = (s) => {
+                card.style.setProperty('--qb', (32 * s).toFixed(2) + 'px');
+                if (qText) lh(qText).style.fontSize = (20 * s).toFixed(2) + 'px';
+                if (trans) lh(trans).style.fontSize = (14 * s).toFixed(2) + 'px';
+                pills.forEach(p => { lh(p).style.fontSize = (16 * s).toFixed(2) + 'px'; p.style.padding = (6 * s).toFixed(2) + 'px ' + (16 * s).toFixed(2) + 'px'; });
+                if (fbMsg) lh(fbMsg).style.fontSize = (14 * s).toFixed(2) + 'px';
+                if (fbScore) lh(fbScore).style.fontSize = (12 * s).toFixed(2) + 'px';
+            };
+            const applyImg = (h) => {
+                let w = h / 1.25;
+                if (w > innerW) { w = innerW; h = w * 1.25; }
+                imgEl.style.width = w.toFixed(2) + 'px';
+                imgEl.style.height = h.toFixed(2) + 'px';
+                return h;
             };
 
-            applyFonts();
-            let imgMin = Math.round(window.innerHeight * 0.5);
-            { const [w, hh] = capW(imgMin); imgMin = hh; }
+            // 기준 비율(s=1)에서의 구성 요소 합 측정 + 간격 7개(기준 간격 8px) 예산
+            applyFonts(1);
+            const K = bH() + 56;
 
-            // 1) 넉넉한 화면: 구성 요소 배치 후 남는 공간은 전부 이미지로
-            let imgH = cardH - micH - bH() - 7 * Math.max(4, Math.round(8 * k));
-            if (imgH >= imgMin) {
-                const [w, hh] = capW(imgH);
-                const Gap = Math.max(2, Math.round(((cardH - hh - micH - bH()) / 7) * 10) / 10);
-                apply(hh, Gap);
+            // 이미지 50% 하한(폭이 물리적으로 좁으면 폭 제한값)
+            let imgMin = window.innerHeight * 0.5;
+            if (imgMin / 1.25 > innerW) imgMin = innerW * 1.25;
+
+            let s = cardH / REF;
+            let imgH = cardH - micH - K * s;
+            if (imgH < imgMin) { imgH = imgMin; s = Math.max(0.02, (cardH - imgMin - micH) / K); }
+            imgH = applyImg(imgH);
+
+            // 실측 높이로 남는 공간을 간격 하나로 균등 배분(줄바꿈 등 오차까지 흡수)
+            for (let i = 0; i < 4; i++) {
+                applyFonts(s);
+                const C = bH();
+                let g = (cardH - imgH - micH - C) / 7;
+                if (g < 0.5 && i < 3) { s *= 0.95; continue; }
+                if (g < 0.5) { // 극단적으로 짧은 화면: 잘림 방지가 최우선, 이미지를 남는 만큼으로
+                    imgH = applyImg(Math.max(40, cardH - micH - C - 3.5));
+                    g = (cardH - imgH - micH - C) / 7;
+                }
+                card.style.setProperty('--qg', Math.max(0.5, g).toFixed(2) + 'px');
                 return;
             }
-            // 2) 50% 하한 유지: 폰트·간격을 줄여 맞춤
-            for (let i = 0; i < 10; i++) {
-                const G = (cardH - imgMin - micH - bH()) / 7;
-                if (G >= 2) { apply(imgMin, Math.round(G * 10) / 10); return; }
-                if (k <= 0.56) break;
-                k *= 0.93;
-                applyFonts();
-            }
-            // 3) 물리적으로 불가능한 초단폭 화면: 잘림 방지가 최우선
-            imgH = Math.max(80, cardH - micH - bH() - 14);
-            const [w3, h3] = capW(imgH);
-            apply(h3, 2);
         }
         window.addEventListener('resize', () => { if (document.getElementById('q-card')) fitQuestionLayout(); });
         if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (document.getElementById('q-card')) fitQuestionLayout(); });
@@ -513,7 +515,7 @@
                         </h3>
                     </div>
 
-                    <div id="q-card" class="bg-white w-full rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center z-10 flex-1 min-h-0 overflow-hidden" style="padding: var(--qg, 0.5rem) 0.5rem; gap: var(--qg, 0.5rem);">
+                    <div id="q-card" class="bg-white w-full rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center z-10 flex-1 min-h-0 overflow-hidden" style="padding: var(--qg, 0.5rem) 0.6vh; gap: var(--qg, 0.5rem);">
 
                         <img id="q-img" src="${data.image}" class="rounded-xl object-cover shrink-0" alt="Question Image">
 
