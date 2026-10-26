@@ -440,10 +440,12 @@
                 const ctx = c.getContext('2d'); ctx.drawImage(imgEl, 0, 0);
                 const d = ctx.getImageData(0, 0, W, H).data;
                 const isBg = (x, y) => { const i = (y * W + x) * 4; if (d[i + 3] <= 24) return true; return d[i] > 245 && d[i + 1] > 245 && d[i + 2] > 245; };
-                let top = -1, bot = -1;
+                let top = -1, bot = -1, lft = -1, rgt = -1;
                 outer1: for (let y = 0; y < H; y++) for (let x = 0; x < W; x += 4) if (!isBg(x, y)) { top = y; break outer1; }
                 outer2: for (let y = H - 1; y >= 0; y--) for (let x = 0; x < W; x += 4) if (!isBg(x, y)) { bot = y; break outer2; }
-                IMG_META[src] = (top < 0) ? null : { fT: top / H, fB: (H - 1 - bot) / H };
+                outer3: for (let x = 0; x < W; x++) for (let y = 0; y < H; y += 4) if (!isBg(x, y)) { lft = x; break outer3; }
+                outer4: for (let x = W - 1; x >= 0; x--) for (let y = 0; y < H; y += 4) if (!isBg(x, y)) { rgt = x; break outer4; }
+                IMG_META[src] = (top < 0) ? null : { fT: top / H, fB: (H - 1 - bot) / H, fL: lft / W, fR: (W - 1 - rgt) / W };
             } catch (e) { IMG_META[src] = null; }
             fitQuestionLayout();
             qRevealArmed = true;
@@ -453,7 +455,7 @@
             const card = document.getElementById('q-card');
             if (card && card.style.visibility === 'hidden') card.style.visibility = 'visible';
         }
-        let qRevealArmed = false, qFitDigest = '', qFitStable = 0, qRevealTries = 0;
+        let qRevealArmed = false, qFitDigest = '', qFitStable = 0, qRevealTries = 0, qFitChangedAt = 0;
         function markFitDigest() {
             const card = document.getElementById('q-card');
             const qText = document.getElementById('q-text');
@@ -461,12 +463,13 @@
             if (!card || !qText || !imgEl) return;
             const mic = document.getElementById('record-btn');
             const dig = card.style.getPropertyValue('--qg') + '|' + imgEl.style.height + '|' + qText.style.fontSize + '|' + card.style.paddingBottom + '|' + (mic ? (mic.getBoundingClientRect().y * 2).toFixed(0) : 0);
-            qFitStable = dig === qFitDigest ? qFitStable + 1 : 0;
+            if (dig === qFitDigest) qFitStable++;
+            else { qFitStable = 0; qFitChangedAt = performance.now(); }
             qFitDigest = dig;
         }
         function tryReveal() {
             if (!qRevealArmed || !qFontsReady) return;
-            if (qFitStable >= 2 || qRevealTries >= 30) { revealQuestion(); return; } // 계산이 안정된 뒤에만 표시
+            if ((qFitStable >= 2 && performance.now() - qFitChangedAt >= 500) || qRevealTries >= 40) { revealQuestion(); return; } // 계산이 안정된 뒤에만 표시: 마지막 변화 후 500ms 이상 동일
             qRevealTries++;
             setTimeout(() => { if (document.getElementById('q-card')) fitQuestionLayout(); tryReveal(); }, 120);
         }
@@ -494,8 +497,8 @@
             if (!card || !imgEl) return;
 
             qViewportRelatch();
-            const meta = IMG_META[imgEl.getAttribute('src')] || null;
-            const fT = meta ? meta.fT : 0;
+            const metaCur = IMG_META[imgEl.getAttribute('src')] || null;
+            const fT = Math.max(0, ...Object.values(IMG_META).filter(Boolean).map(m => m.fT || 0)); // 세로 통일 규격: 가장 큰 내부 여백 기준(모든 문제 동일 크기·동일 위치)
 
             const blocks = ['qtext-block', 'q-trans', 'hint-cell', 'feedback-msg'].map(id => document.getElementById(id)).filter(Boolean);
             const micRow = document.getElementById('mic-row');
@@ -524,11 +527,17 @@
                 if (fbMsg) lh(fbMsg).style.fontSize = (14 * sc).toFixed(2) + 'px';
                 if (fbScore) lh(fbScore).style.fontSize = (14 * sc).toFixed(2) + 'px';
             };
-            const setImg = (w, h) => {
+            const setImg = (w, h, metaCur) => {
                 imgEl.style.width = w.toFixed(2) + 'px';
                 imgEl.style.height = h.toFixed(2) + 'px';
-                imgEl.style.marginTop = '0px';
                 imgEl.style.marginBottom = '0px';
+                if (metaCur) { // 가로: 보이는 그림(내부 여백 제외)이 박스 정중앙에 오도록 보정
+                    imgEl.style.marginTop = (-(metaCur.fT - metaCur.fB) / 2 * h).toFixed(2) + 'px';
+                    imgEl.style.marginLeft = (-(metaCur.fL - metaCur.fR) / 2 * w).toFixed(2) + 'px';
+                } else {
+                    imgEl.style.marginTop = '0px';
+                    imgEl.style.marginLeft = '0px';
+                }
             };
             // 안내 메시지는 어떤 상태에서도 한 줄: 가장 긴 안내 문구 기준으로 상한 배율 측정(측정 시점 배율 비례)
             const nowrapCap = (boxW, sCur) => {
@@ -563,13 +572,12 @@
                 let sc = solveScale(cardH - micH, 48);
                 const cap = nowrapCap(boxW, sc);
                 if (cap !== Infinity && cap < sc) { sc = Math.max(0.02, cap); applyFonts(sc); }
-                const C = bH();
                 card.style.paddingBottom = '';
-                card.style.setProperty('--qg', Math.max(0.5, (cardH - micH - C) / 6).toFixed(2) + 'px');
+                card.style.setProperty('--qg', Math.max(0.5, 8 * sc).toFixed(2) + 'px'); // 줄간격은 일반 비율 유지 — 남는 높이는 상하 여백(중앙 정렬)으로
                 const lbH = leftBox ? leftBox.clientHeight : cardH;
                 const lbW = leftBox ? leftBox.clientWidth : cardW / 2;
                 let h = Math.min(lbH * 0.8, lbW * 1.25);
-                setImg(h / 1.25, h);
+                setImg(h / 1.25, h, metaCur);
                 markFitDigest();
                 return;
             }
@@ -738,7 +746,7 @@
                     fbMsg.textContent = '\u00A0';
                 }
 
-                if (state.attempts > 0) {
+                if (state.attempts > 0 || state.passed) {
                     fbScore.className = 'text-gray-400 font-normal whitespace-nowrap max-w-full overflow-hidden text-ellipsis';
                     fbScore.textContent = `"${state.lastText || ''}" (${state.lastScore ?? '?'}%)`;
                 } else {
@@ -764,6 +772,8 @@
             msgEl.className = cls;
             msgEl.textContent = text;
             if (scoreEl) scoreEl.classList.add('invisible');
+            const micRowEl = document.getElementById('mic-row'); // 메시지 표시 시점부터 마이크는 메시지 하단(중앙 겹침 방지)
+            if (micRowEl) micRowEl.classList.add('msg-shown');
         }
 
         // --- Recording Logic ---
@@ -889,6 +899,10 @@
             }
             updateQuestionUI(lessonData[currentIndex], state);
             updateProgress();
+            if (!state.passed && state.attempts < 3) { // 실패 후 재시도: 질문 오디오 1회 자동 재생(효과음과 겹치지 않게 지연)
+                const qa = lessonData[currentIndex].qAudio;
+                if (qa) setTimeout(() => { if (!isRecording && !isAudioPlaying) playAudio(qa); }, 600);
+            }
         }
 
         function renderOutro(data) {
@@ -944,6 +958,17 @@
 
         nextBtn.addEventListener('click', nextPage);
         prevBtn.addEventListener('click', prevPage);
+
+        // 모든 문제 이미지를 레슨 시작 시 미리 분석한다 — 문제마다 동일한 이미지 크기·동일한 구성 요소 위치를 보장하고,
+        // 문제 진입 시 이미 분석이 끝나 있어 레이아웃이 한 번에 확정된다(진입 후 재계산으로 인한 마이크 이동 없음).
+        lessonData.forEach(item => {
+            if (!item.image || IMG_META[item.image] !== undefined) return;
+            const pre = new Image();
+            pre.crossOrigin = 'anonymous';
+            pre.onload = () => analyzeImage(pre);
+            pre.onerror = () => {};
+            pre.src = item.image;
+        });
 
         render();
     </script>
