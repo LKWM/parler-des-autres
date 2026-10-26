@@ -453,8 +453,23 @@
             const card = document.getElementById('q-card');
             if (card && card.style.visibility === 'hidden') card.style.visibility = 'visible';
         }
-        let qRevealArmed = false;
-        function tryReveal() { if (qRevealArmed && qFontsReady) revealQuestion(); }
+        let qRevealArmed = false, qFitDigest = '', qFitStable = 0, qRevealTries = 0;
+        function markFitDigest() {
+            const card = document.getElementById('q-card');
+            const qText = document.getElementById('q-text');
+            const imgEl = document.getElementById('q-img');
+            if (!card || !qText || !imgEl) return;
+            const mic = document.getElementById('record-btn');
+            const dig = card.style.getPropertyValue('--qg') + '|' + imgEl.style.height + '|' + qText.style.fontSize + '|' + card.style.paddingBottom + '|' + (mic ? (mic.getBoundingClientRect().y * 2).toFixed(0) : 0);
+            qFitStable = dig === qFitDigest ? qFitStable + 1 : 0;
+            qFitDigest = dig;
+        }
+        function tryReveal() {
+            if (!qRevealArmed || !qFontsReady) return;
+            if (qFitStable >= 2 || qRevealTries >= 30) { revealQuestion(); return; } // 계산이 안정된 뒤에만 표시
+            qRevealTries++;
+            setTimeout(() => { if (document.getElementById('q-card')) fitQuestionLayout(); tryReveal(); }, 120);
+        }
 
         // 진동 방지: 모바일 주소창 접힘 등 미세 뷰포트 변화는 무시하고, 의미 있는 변화(회전·창 크기 변화)만 재계산한다.
         // 마이크는 첫 표시부터 최종 위치에 고정 — 레이아웃 확정(이미지 여백 분석 완료) 후에만 카드를 표시한다.
@@ -555,6 +570,7 @@
                 const lbW = leftBox ? leftBox.clientWidth : cardW / 2;
                 let h = Math.min(lbH * 0.8, lbW * 1.25);
                 setImg(h / 1.25, h);
+                markFitDigest();
                 return;
             }
 
@@ -584,6 +600,7 @@
             setImg(imgW, imgH);
             card.style.setProperty('--qg', g.toFixed(2) + 'px');
             card.style.paddingBottom = (g + fT * imgH).toFixed(2) + 'px'; // 마이크 아래 = 이미지 위 여백 + 이미지 안의 여백
+            markFitDigest();
         }
 
         window.addEventListener('resize', () => { if (document.getElementById('q-card') && qViewportRelatch()) fitQuestionLayout(); });
