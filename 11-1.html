@@ -432,10 +432,10 @@
         const IMG_META = {};
         function analyzeImage(imgEl) {
             const src = imgEl.getAttribute('src');
-            if (!src || IMG_META[src] !== undefined) { fitQuestionLayout(); return; }
+            if (!src || IMG_META[src] !== undefined) { fitQuestionLayout(); qRevealArmed = true; tryReveal(); return; }
             try {
                 const W = imgEl.naturalWidth, H = imgEl.naturalHeight;
-                if (!W || !H) { IMG_META[src] = null; fitQuestionLayout(); return; }
+                if (!W || !H) { IMG_META[src] = null; fitQuestionLayout(); qRevealArmed = true; tryReveal(); return; }
                 const c = document.createElement('canvas'); c.width = W; c.height = H;
                 const ctx = c.getContext('2d'); ctx.drawImage(imgEl, 0, 0);
                 const d = ctx.getImageData(0, 0, W, H).data;
@@ -446,16 +446,41 @@
                 IMG_META[src] = (top < 0) ? null : { fT: top / H, fB: (H - 1 - bot) / H };
             } catch (e) { IMG_META[src] = null; }
             fitQuestionLayout();
+            qRevealArmed = true;
+            tryReveal();
+        }
+        function revealQuestion() {
+            const card = document.getElementById('q-card');
+            if (card && card.style.visibility === 'hidden') card.style.visibility = 'visible';
+        }
+        let qRevealArmed = false;
+        function tryReveal() { if (qRevealArmed && qFontsReady) revealQuestion(); }
+
+        // 진동 방지: 모바일 주소창 접힘 등 미세 뷰포트 변화는 무시하고, 의미 있는 변화(회전·창 크기 변화)만 재계산한다.
+        // 마이크는 첫 표시부터 최종 위치에 고정 — 레이아웃 확정(이미지 여백 분석 완료) 후에만 카드를 표시한다.
+        let qSizeLatch = null, qFontsReady = false;
+        function qViewportRelatch() {
+            const w = window.innerWidth, h = window.innerHeight;
+            const card = document.getElementById('q-card');
+            const ch = card ? card.clientHeight : 0;
+            if (!qSizeLatch) { qSizeLatch = { w, h, ch }; return true; }
+            if (w !== qSizeLatch.w || Math.abs(h - qSizeLatch.h) >= 90 || Math.abs(ch - qSizeLatch.ch) >= 90) { qSizeLatch = { w, h, ch }; return true; }
+            return false;
         }
 
-        // 모든 크기·간격은 카드 높이 대비 순수 비율(상대값)로만 결정된다.
-        // 세로 화면: 이미지(원본 그대로)는 화면 세로의 45% 이상, 보이는 그림 기준으로 위 여백 = 마이크 아래 여백 = 요소 간 여백.
-        // 가로 화면(가로 > 세로x1.2): 좌우 1:1 병렬 — 왼쪽 중앙 이미지(높이 = 박스의 80%), 오른쪽 중앙 텍스트.
-        // 마이크는 첫 시도(안내 메시지 전) 오른쪽 박스 중앙, 메시지 표시 시점부터 메시지 하단.
+        // 세로: 이미지(상단 여백 포함)는 화면 세로의 45%까지, 나머지 공간은 글씨와 간격이 채운다.
+        //        글씨 크기는 남는 공간에 맞춰 커진다(화면이 작을 때만 줄어든다), 간격과 위/아래 여백은 동일.
+        //        마이크 아래 여백 = 이미지 위 여백 + 이미지 안의 여백(보이는 그림의 위 여백과 동일).
+        // 가로(가로 > 세로x1.2): 좌우 1:1 병렬 — 왼쪽 중앙 이미지(높이 = 박스의 80%), 오른쪽 텍스트가 박스를 채운다.
+        // 마이크는 첫 시도 오른쪽 박스 중앙, 안내 메시지 표시 시점부터 메시지 하단. 마이크 규격은 프로그램 공통.
         function fitQuestionLayout() {
             const card = document.getElementById('q-card');
             const imgEl = document.getElementById('q-img');
             if (!card || !imgEl) return;
+
+            qViewportRelatch();
+            const meta = IMG_META[imgEl.getAttribute('src')] || null;
+            const fT = meta ? meta.fT : 0;
 
             const blocks = ['qtext-block', 'q-trans', 'hint-cell', 'feedback-msg'].map(id => document.getElementById(id)).filter(Boolean);
             const micRow = document.getElementById('mic-row');
@@ -463,20 +488,17 @@
             const micH = micRow ? micRow.offsetHeight : 0;
             const cardH = card.clientHeight;
             const cardW = card.clientWidth;
-            const land = window.innerWidth > window.innerHeight * 1.2;
+            const land = qSizeLatch.w > qSizeLatch.h * 1.2;
             card.classList.toggle('q-land', land);
             const qCol = document.getElementById('q-col');
             if (qCol) qCol.classList.toggle('q-wide', land);
             if (micRow) micRow.style.minHeight = land && micBtn ? micBtn.offsetHeight + 'px' : '';
 
-            const meta = IMG_META[imgEl.getAttribute('src')] || null;
-            const fT = meta ? meta.fT : 0, fB = meta ? meta.fB : 0;
             const qText = document.getElementById('q-text');
             const trans = document.getElementById('q-trans');
             const pills = card.querySelectorAll('.q-pill');
             const fbMsg = document.getElementById('fb-msg');
             const fbScore = document.getElementById('fb-score');
-            const REF = 700;
             const bH = () => blocks.reduce((a, el) => a + el.offsetHeight, 0);
             const lh = el => { el.style.lineHeight = '1.3'; return el; };
             const applyFonts = (sc) => {
@@ -485,7 +507,7 @@
                 if (trans) lh(trans).style.fontSize = (14 * sc).toFixed(2) + 'px';
                 pills.forEach(p => { lh(p).style.fontSize = (16 * sc).toFixed(2) + 'px'; p.style.padding = (6 * sc).toFixed(2) + 'px ' + (16 * sc).toFixed(2) + 'px'; });
                 if (fbMsg) lh(fbMsg).style.fontSize = (14 * sc).toFixed(2) + 'px';
-                if (fbScore) lh(fbScore).style.fontSize = (12 * sc).toFixed(2) + 'px';
+                if (fbScore) lh(fbScore).style.fontSize = (14 * sc).toFixed(2) + 'px';
             };
             const setImg = (w, h) => {
                 imgEl.style.width = w.toFixed(2) + 'px';
@@ -493,56 +515,85 @@
                 imgEl.style.marginTop = '0px';
                 imgEl.style.marginBottom = '0px';
             };
+            // 안내 메시지는 어떤 상태에서도 한 줄: 가장 긴 안내 문구 기준으로 상한 배율 측정(측정 시점 배율 비례)
+            const nowrapCap = (boxW, sCur) => {
+                if (!fbMsg) return Infinity;
+                const t = fbMsg.textContent;
+                fbMsg.textContent = 'Vous y êtes presque. Essayez encore une fois.';
+                const w1 = fbMsg.scrollWidth;
+                fbMsg.textContent = t;
+                return w1 > 0 && w1 > boxW ? sCur * boxW / w1 : Infinity;
+            };
+            // 글씨 배율: 남는 공간(간격 gapKxs + 구성요소)을 목표치로 채울 때까지 반복 측정
+            const solveScale = (target, gapK) => {
+                let sc = Math.max(0.02, target / (gapK + 175));
+                for (let i = 0; i < 8; i++) {
+                    applyFonts(sc);
+                    const used = gapK * sc + bH();
+                    if (Math.abs(used - target) < 1) return sc;
+                    const ns = Math.max(0.02, sc * target / Math.max(1, used));
+                    if (Math.abs(ns - sc) < 0.005) { applyFonts(ns); return ns; }
+                    sc = ns;
+                }
+                applyFonts(sc);
+                return sc;
+            };
 
             applyFonts(1);
 
             if (land) {
                 const leftBox = document.getElementById('q-left');
+                const rightBox = document.getElementById('q-right');
+                const boxW = (rightBox ? rightBox.clientWidth : cardW / 2) - qSizeLatch.h * 0.012;
+                let sc = solveScale(cardH - micH, 48);
+                const cap = nowrapCap(boxW, sc);
+                if (cap !== Infinity && cap < sc) { sc = Math.max(0.02, cap); applyFonts(sc); }
+                const C = bH();
+                card.style.paddingBottom = '';
+                card.style.setProperty('--qg', Math.max(0.5, (cardH - micH - C) / 6).toFixed(2) + 'px');
                 const lbH = leftBox ? leftBox.clientHeight : cardH;
                 const lbW = leftBox ? leftBox.clientWidth : cardW / 2;
                 let h = Math.min(lbH * 0.8, lbW * 1.25);
                 setImg(h / 1.25, h);
-                const sc = cardH / REF;
-                applyFonts(sc);
-                card.style.paddingBottom = '';
-                card.style.setProperty('--qg', Math.max(0.5, 8 * sc).toFixed(2) + 'px');
                 return;
             }
 
-            const innerW = cardW - window.innerHeight * 0.012;
-            const K = bH() + 56;
-            let imgMin = window.innerHeight * 0.45;
-            if (imgMin / 1.25 > innerW) imgMin = innerW * 1.25;
-            let sc = cardH / REF;
-            let imgH = (cardH - micH - K * sc) / (1 + fT);
-            if (imgH < imgMin) { imgH = imgMin; sc = Math.max(0.02, (cardH - imgMin * (1 + fT) - micH) / K); }
+            const innerW = cardW - qSizeLatch.h * 0.012;
+            const Hs = qSizeLatch.h;
+            const target = Math.max(50, cardH - 0.45 * Hs - micH); // 7G + 이미지(1+fT) + 구성요소
+            let sc = solveScale(target, 48);
+            const cap = nowrapCap(innerW, sc);
+            if (cap !== Infinity && cap < sc) { sc = Math.max(0.02, cap); applyFonts(sc); }
+            const C = bH();
+
+            // 밴드(상단 여백 + 이미지)를 정확히 45%로: 간격이 남는 공간을 흡수
+            let g = (target - C) / 6;
+            let imgH = (0.45 * Hs - g) / (1 + fT);
             let imgW = imgH / 1.25;
-            if (imgW > innerW) { imgW = innerW; imgH = imgW * 1.25; }
-            setImg(imgW, imgH);
-            for (let i = 0; i < 4; i++) {
-                applyFonts(sc);
-                const C = bH();
-                let g = (cardH - imgH * (1 + fT) - micH - C) / 7;
-                if (g < 0.5 && i < 3) { sc *= 0.95; continue; }
-                if (g < 0.5) {
-                    imgH = Math.max(40, (cardH - micH - C - 3.5) / (1 + fT));
-                    imgW = imgH / 1.25;
-                    if (imgW > innerW) { imgW = innerW; imgH = imgW * 1.25; }
-                    setImg(imgW, imgH);
-                    g = (cardH - imgH * (1 + fT) - micH - C) / 7;
-                }
-                card.style.setProperty('--qg', Math.max(0.5, g).toFixed(2) + 'px');
-                card.style.paddingBottom = (Math.max(0.5, g) + fT * imgH).toFixed(2) + 'px'; // 마이크 아래 = 이미지 위 여백 + 이미지 안의 여백
-                return;
+            if (imgW > innerW) { // 폭 제한: 밴드가 45%보다 작아도 간격이 여유를 흡수
+                imgW = innerW; imgH = imgW * 1.25;
+                g = (cardH - imgH * (1 + fT) - micH - C) / 7;
             }
+            if (g < 0.5 || imgH < 40) { // 극한 화면: 잘림 방지 우선, 이미지 축소
+                imgH = Math.max(40, (cardH - micH - C - 3.5) / (1 + fT));
+                imgW = imgH / 1.25;
+                if (imgW > innerW) { imgW = innerW; imgH = imgW * 1.25; }
+                g = Math.max(0.5, (cardH - imgH * (1 + fT) - micH - C) / 7);
+            }
+            g = Math.max(0.5, g);
+            setImg(imgW, imgH);
+            card.style.setProperty('--qg', g.toFixed(2) + 'px');
+            card.style.paddingBottom = (g + fT * imgH).toFixed(2) + 'px'; // 마이크 아래 = 이미지 위 여백 + 이미지 안의 여백
         }
-        window.addEventListener('resize', () => { if (document.getElementById('q-card')) fitQuestionLayout(); });
-        if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (document.getElementById('q-card')) fitQuestionLayout(); });
+
+        window.addEventListener('resize', () => { if (document.getElementById('q-card') && qViewportRelatch()) fitQuestionLayout(); });
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { qFontsReady = true; if (document.getElementById('q-card')) { fitQuestionLayout(); tryReveal(); } });
         function watchQuestionLayout() {
             const img = document.getElementById('q-img');
             if (img && !img.dataset.fitBound) {
                 img.dataset.fitBound = '1';
                 img.addEventListener('load', () => analyzeImage(img));
+                img.addEventListener('error', () => { qRevealArmed = true; tryReveal(); });
             }
             const card = document.getElementById('q-card');
             if (card && window.ResizeObserver && !card.dataset.fitBound) {
@@ -554,10 +605,10 @@
                     requestAnimationFrame(() => { delete card.dataset.fitting; });
                 }).observe(card);
             }
-            setTimeout(() => { if (document.getElementById('q-card')) fitQuestionLayout(); }, 80);
-            setTimeout(() => { if (document.getElementById('q-card')) fitQuestionLayout(); }, 350);
+            setTimeout(() => { if (document.getElementById('q-card')) { fitQuestionLayout(); tryReveal(); } }, 80);
+            setTimeout(() => { if (document.getElementById('q-card')) { fitQuestionLayout(); tryReveal(); } }, 350);
+            setTimeout(() => { if (document.getElementById('q-card')) revealQuestion(); }, 4000);
         }
-
         function renderQuestion(data) {
             const state = getExerciseState(currentIndex);
 
@@ -573,7 +624,7 @@
                         </h3>
                     </div>
 
-                    <div id="q-card" class="bg-white w-full rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center z-10 flex-1 min-h-0 overflow-hidden" style="padding: var(--qg, 0.5rem) 0.6vh; gap: var(--qg, 0.5rem);">
+                    <div id="q-card" class="bg-white w-full rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center z-10 flex-1 min-h-0 overflow-hidden" style="padding: var(--qg, 0.5rem) 0.6vh; gap: var(--qg, 0.5rem); visibility: hidden;">
 
                         <div id="q-split" class="contents w-full flex-1 min-h-0">
                         <div id="q-left" class="contents">
@@ -620,6 +671,8 @@
             fitQuestionLayout();
             requestAnimationFrame(() => fitQuestionLayout());
             watchQuestionLayout();
+            if (IMG_META[data.image] !== undefined) { qRevealArmed = true; requestAnimationFrame(() => { fitQuestionLayout(); tryReveal(); }); } // 이미 측정된 이미지
+            requestAnimationFrame(() => fitQuestionLayout());
 
 
             const recordBtn = document.getElementById('record-btn');
