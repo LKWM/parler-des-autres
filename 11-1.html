@@ -65,8 +65,9 @@
         .q-land > #q-split > #q-right > * { flex: 0 0 auto; }
         .q-land #mic-row #record-btn { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 30; }
         .q-land #mic-row.msg-shown #record-btn { position: static; transform: none; left: auto; top: auto; }
-        .q-land #feedback-msg.q-status { position: static; }
-        .q-land #feedback-msg.q-status #fb-msg { top: calc(50% + var(--micr, 40px) + var(--qg, 0.5rem)); align-items: flex-start; }
+        .q-land #q-text, .q-land #q-trans { white-space: nowrap; }
+        .q-land #feedback-msg.q-status.fb-under-mic { position: static; }
+        .q-land #feedback-msg.q-status.fb-under-mic #fb-msg { top: calc(50% + var(--micr, 40px) + var(--qg, 0.5rem)); align-items: flex-start; }
     </style>
 </head>
 <body class="bg-white">
@@ -391,6 +392,11 @@
                     updateRecordButtonState();
                     if (onEndCallback) onEndCallback(); 
                 };
+                audioPlayer.onerror = () => { // 오디오 로드 실패 시에도 마이크 잠금이 영구 남지 않도록
+                    isAudioPlaying = false;
+                    updateRecordButtonState();
+                    if (onEndCallback) onEndCallback();
+                };
             }, delay);
         }
 
@@ -534,14 +540,25 @@
                     imgEl.style.marginLeft = '0px';
                 }
             };
-            // 안내 메시지는 어떤 상태에서도 한 줄: 가장 긴 안내 문구 기준으로 상한 배율 측정(측정 시점 배율 비례)
-            const nowrapCap = (boxW, sCur) => {
-                if (!fbMsg) return Infinity;
-                const t = fbMsg.textContent;
-                fbMsg.textContent = 'Vous y êtes presque. Essayez encore une fois.';
-                const w1 = fbMsg.scrollWidth;
-                fbMsg.textContent = t;
-                return w1 > 0 && w1 > boxW ? sCur * boxW / w1 : Infinity;
+            // 모든 한 줄 텍스트가 화면 폭에 맞게 축소: 가장 긴 본문·번역·안내 문구·전사(최장 추정) 기준 상한 배율(측정 시점 배율 비례)
+            const qsAll = lessonData.filter(d => d.type === 'question');
+            const longestOf = key => qsAll.reduce((a, d) => (d[key] && d[key].length > a.length ? d[key] : a), '');
+            const LONG_Q = longestOf('qText');
+            const LONG_TR = longestOf('qTrans');
+            const LONG_TRANS = '"' + longestOf('hint3') + '" (100%)';
+            const nowrapCap = (boxW, sCur, full) => {
+                // 캔버스 measureText로 실제 한 줄 폭 측정(CSS max-w/ellipsis 잘림 영향 없음)
+                if (!window.__capCtx) window.__capCtx = document.createElement('canvas').getContext('2d');
+                let wMax = 0;
+                const mw = (el, txt) => {
+                    if (!el || !txt) return;
+                    const cs = getComputedStyle(el);
+                    window.__capCtx.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+                    wMax = Math.max(wMax, Math.ceil(window.__capCtx.measureText(txt).width));
+                };
+                mw(fbMsg, 'Vous y êtes presque. Essayez encore une fois.');
+                if (full) { mw(qText, LONG_Q); mw(trans, LONG_TR); mw(fbScore, LONG_TRANS); }
+                return wMax > 0 && wMax > boxW ? sCur * (boxW * 0.97) / wMax : Infinity; // 3% 안전 마진 — 캔버스 측정과 실제 렌더링 오차 흡수, 어떤 크기에서도 한 줄 완전 표시
             };
             // 글씨 배율: 남는 공간(간격 gapKxs + 구성요소)을 목표치로 채울 때까지 반복 측정
             const solveScale = (target, gapK) => {
@@ -563,9 +580,10 @@
             if (land) {
                 const leftBox = document.getElementById('q-left');
                 const rightBox = document.getElementById('q-right');
-                const boxW = (rightBox ? rightBox.clientWidth : cardW / 2) * 0.92 - qSizeLatch.h * 0.012;
+                const fbBlk = document.getElementById('feedback-msg');
+                const boxW = fbBlk ? fbBlk.clientWidth : (rightBox ? rightBox.clientWidth : cardW / 2) * 0.92; // 텍스트 블록 실측 폭 = 실제 잘림 기준선
                 let sc = solveScale(cardH - micH, 48);
-                const cap = nowrapCap(boxW, sc);
+                const cap = nowrapCap(boxW, sc, true);
                 if (cap !== Infinity && cap < sc) { sc = Math.max(0.02, cap); applyFonts(sc); }
                 card.style.paddingBottom = '';
                 card.style.setProperty('--qg', Math.max(0.5, 8 * sc).toFixed(2) + 'px'); // 줄간격은 일반 비율 유지 — 남는 높이는 상하 여백(중앙 정렬)으로
@@ -581,7 +599,7 @@
             const Hs = qSizeLatch.h;
             const target = Math.max(50, cardH - 0.45 * Hs - micH); // 7G + 이미지(1+fT) + 구성요소
             let sc = solveScale(target, 48);
-            const cap = nowrapCap(innerW, sc);
+            const cap = nowrapCap((document.getElementById('feedback-msg') || {}).clientWidth || innerW, sc, false);
             if (cap !== Infinity && cap < sc) { sc = Math.max(0.02, cap); applyFonts(sc); }
             const C = bH();
 
@@ -618,7 +636,13 @@
             const card = document.getElementById('q-card');
             if (card && window.ResizeObserver && !card.dataset.fitBound) {
                 card.dataset.fitBound = '1';
-                new ResizeObserver(() => {
+                new ResizeObserver((entries) => {
+                    const e = entries && entries[0];
+                    const bbH = e && e.borderBoxSize && e.borderBoxSize[0] ? e.borderBoxSize[0].blockSize : card.offsetHeight;
+                    const prev = parseFloat(card.dataset.lastBH || '0');
+                    const delta = Math.abs(bbH - prev);
+                    card.dataset.lastBH = String(Math.round(bbH));
+                    if (prev > 0 && delta >= 1 && delta < 90) return; // 툴바 접힘 등 미세 뷰포트 변화: 레이아웃 고정 유지
                     if (card.dataset.fitting) return;
                     card.dataset.fitting = '1';
                     fitQuestionLayout();
@@ -730,7 +754,7 @@
             const sizerEl = document.getElementById('fb-sizer');
             if (sizerEl) sizerEl.classList.add('hidden');
             const fbBlockEl = document.getElementById('feedback-msg');
-            if (fbBlockEl) fbBlockEl.classList.remove('q-status');
+            if (fbBlockEl) { fbBlockEl.classList.remove('q-status'); fbBlockEl.classList.remove('fb-under-mic'); }
             if (fbMsg && fbScore) {
                 if (state.passed) {
                     fbMsg.className = 'font-bold whitespace-nowrap max-w-full overflow-hidden text-ellipsis text-green-600';
@@ -776,6 +800,13 @@
             if (sizer) sizer.classList.remove('hidden');
             const fbBlock = document.getElementById('feedback-msg');
             if (fbBlock) fbBlock.classList.add('q-status');
+            // 마이크가 중앙(첫 시도, 다른 안내 텍스트 없음)일 때만 상태 텍스트를 마이크 바로 아래에,
+            // 재시도 중(마이크가 이미 메시지 하단, 질문/힌트 등 표시 중)에는 피드백 영역 중앙에 배치
+            const micRowEl = document.getElementById('mic-row');
+            const micCentered = micRowEl && !micRowEl.classList.contains('msg-shown');
+            const cardEl = document.getElementById('q-card');
+            const isLand = cardEl && cardEl.classList.contains('q-land');
+            fbBlock.classList.toggle('fb-under-mic', !!(isLand && micCentered));
         }
 
         // --- Recording Logic ---
