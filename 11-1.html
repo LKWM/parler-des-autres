@@ -517,24 +517,26 @@
             const fbMsg = document.getElementById('fb-msg');
             const fbScore = document.getElementById('fb-score');
             const bH = () => blocks.reduce((a, el) => a + el.offsetHeight, 0);
-            const lh = el => { el.style.lineHeight = '1.3'; return el; };
+            // 폰트 크기와 줄 높이를 모두 정수 px로 확정 — 소수점 줄 높이(예: 19.5px)가 합계를 정수 경계에 걸리게 해
+            // iOS Safari에서 렌더마다 1-2px씩 번갈아 흔들리는 원인이었음
+            const setFont = (el, base, sc) => { if (!el) return; const f = Math.max(8, Math.round(base * sc)); el.style.fontSize = f + 'px'; el.style.lineHeight = Math.round(f * 1.3) + 'px'; };
             const applyFonts = (sc) => {
-                card.style.setProperty('--qb', (32 * sc).toFixed(2) + 'px');
-                if (qText) lh(qText).style.fontSize = (20 * sc).toFixed(2) + 'px';
-                if (trans) lh(trans).style.fontSize = (14 * sc).toFixed(2) + 'px';
-                pills.forEach(p => { lh(p).style.fontSize = (16 * sc).toFixed(2) + 'px'; p.style.padding = (6 * sc).toFixed(2) + 'px ' + (16 * sc).toFixed(2) + 'px'; });
-                if (fbMsg) lh(fbMsg).style.fontSize = (14 * sc).toFixed(2) + 'px';
-                const fbSizer = document.getElementById('fb-sizer');
-                if (fbSizer) lh(fbSizer).style.fontSize = (14 * sc).toFixed(2) + 'px';
-                if (fbScore) lh(fbScore).style.fontSize = (14 * sc).toFixed(2) + 'px';
+                card.style.setProperty('--qb', Math.round(32 * sc) + 'px');
+                setFont(qText, 20, sc);
+                setFont(trans, 14, sc);
+                pills.forEach(p => { setFont(p, 16, sc); p.style.padding = Math.round(6 * sc) + 'px ' + Math.round(16 * sc) + 'px'; });
+                setFont(fbMsg, 14, sc);
+                setFont(document.getElementById('fb-sizer'), 14, sc);
+                setFont(fbScore, 14, sc);
             };
             const setImg = (w, h, metaCur) => {
-                imgEl.style.width = w.toFixed(2) + 'px';
-                imgEl.style.height = h.toFixed(2) + 'px';
+                w = Math.round(w); h = Math.round(h);
+                imgEl.style.width = w + 'px';
+                imgEl.style.height = h + 'px';
                 imgEl.style.marginBottom = '0px';
                 if (metaCur) { // 가로: 보이는 그림(내부 여백 제외)이 박스 정중앙에 오도록 보정
-                    imgEl.style.marginTop = (-(metaCur.fT - metaCur.fB) / 2 * h).toFixed(2) + 'px';
-                    imgEl.style.marginLeft = (-(metaCur.fL - metaCur.fR) / 2 * w).toFixed(2) + 'px';
+                    imgEl.style.marginTop = Math.round(-(metaCur.fT - metaCur.fB) / 2 * h) + 'px';
+                    imgEl.style.marginLeft = Math.round(-(metaCur.fL - metaCur.fR) / 2 * w) + 'px';
                 } else {
                     imgEl.style.marginTop = '0px';
                     imgEl.style.marginLeft = '0px';
@@ -548,7 +550,11 @@
             const LONG_TRANS = '"' + longestOf('hint3') + '" (100%)';
             const nowrapCap = (boxW, sCur, full) => {
                 // 캔버스 measureText로 실제 한 줄 폭 측정(CSS max-w/ellipsis 잘림 영향 없음)
-                if (!window.__capCtx) window.__capCtx = document.createElement('canvas').getContext('2d');
+                // 캔버스 2D 컨텍스트를 얻지 못하는 환경에서는 상한을 걸지 않는다(측정 불가 시 예외로 화면이 죽지 않게).
+                if (window.__capCtx === undefined) {
+                    try { window.__capCtx = document.createElement('canvas').getContext('2d'); } catch (e) { window.__capCtx = null; }
+                }
+                if (!window.__capCtx) return Infinity;
                 let wMax = 0;
                 const mw = (el, txt) => {
                     if (!el || !txt) return;
@@ -586,7 +592,7 @@
                 const cap = nowrapCap(boxW, sc, true);
                 if (cap !== Infinity && cap < sc) { sc = Math.max(0.02, cap); applyFonts(sc); }
                 card.style.paddingBottom = '';
-                card.style.setProperty('--qg', Math.max(0.5, 8 * sc).toFixed(2) + 'px'); // 줄간격은 일반 비율 유지 — 남는 높이는 상하 여백(중앙 정렬)으로
+                card.style.setProperty('--qg', Math.max(1, Math.round(8 * sc)) + 'px'); // 줄간격은 일반 비율 유지 — 남는 높이는 상하 여백(중앙 정렬)으로
                 const lbH = leftBox ? leftBox.clientHeight : cardH;
                 const lbW = leftBox ? leftBox.clientWidth : cardW / 2;
                 let h = Math.min(lbH * 0.8, lbW * 1.25);
@@ -595,32 +601,25 @@
                 return;
             }
 
-            const innerW = cardW - qSizeLatch.h * 0.012;
+            const innerW = cardW - 12; // 카드 좌우 패딩 6px x 2 (정수)
             const Hs = qSizeLatch.h;
-            const target = Math.max(50, cardH - 0.45 * Hs - micH); // 7G + 이미지(1+fT) + 구성요소
-            let sc = solveScale(target, 48);
+            // 모든 값을 정수로 직접 푼다: 카드높이 = 7G + 이미지(1+fT) + 구성요소 + 마이크 (G, 이미지 모두 정수)
+            let sc = solveScale(Math.max(50, cardH - Math.round(0.45 * Hs) - micH), 48);
             const cap = nowrapCap((document.getElementById('feedback-msg') || {}).clientWidth || innerW, sc, false);
             if (cap !== Infinity && cap < sc) { sc = Math.max(0.02, cap); applyFonts(sc); }
-            const C = bH();
+            const C = bH(); // 구성요소 합 (정수 줄 높이라 정수)
 
-            // 밴드(상단 여백 + 이미지)를 정확히 45%로: 간격이 남는 공간을 흡수
-            let g = (target - C) / 6;
-            let imgH = (0.45 * Hs - g) / (1 + fT);
-            let imgW = imgH / 1.25;
-            if (imgW > innerW) { // 폭 제한: 밴드가 45%보다 작아도 간격이 여유를 흡수
-                imgW = innerW; imgH = imgW * 1.25;
-                g = (cardH - imgH * (1 + fT) - micH - C) / 7;
-            }
-            if (g < 0.5 || imgH < 40) { // 극한 화면: 잘림 방지 우선, 이미지 축소
-                imgH = Math.max(40, (cardH - micH - C - 3.5) / (1 + fT));
-                imgW = imgH / 1.25;
-                if (imgW > innerW) { imgW = innerW; imgH = imgW * 1.25; }
-                g = Math.max(0.5, (cardH - imgH * (1 + fT) - micH - C) / 7);
-            }
-            g = Math.max(0.5, g);
-            setImg(imgW, imgH);
-            card.style.setProperty('--qg', g.toFixed(2) + 'px');
-            card.style.paddingBottom = (g + fT * imgH).toFixed(2) + 'px'; // 마이크 아래 = 이미지 위 여백 + 이미지 안의 여백
+            const bandTarget = Math.round(0.45 * Hs);          // 상단 여백 + 이미지 = 화면 세로의 45%
+            let G = Math.max(1, Math.floor((cardH - micH - C - bandTarget) / 6)); // 6G + 밴드 + C + mic ≤ cardH 를 만족하는 최대 정수 G
+            let imgH = Math.floor((bandTarget - G) / (1 + fT)); // 밴드 = G + 이미지(1+fT)
+            let imgW = Math.floor(imgH / 1.25);
+            if (imgW > innerW) { imgW = Math.floor(innerW); imgH = Math.floor(imgW * 1.25); }
+            // 합계가 카드 높이를 넘으면 G를 줄여 보정 (잘림 방지 최우선)
+            const total = () => G + imgH + Math.round(fT * imgH) + 6 * G + C + micH - G; // 상단 G + 이미지 + 내부여백 + 5G(요소 간 5) + C + mic + 하단패딩(G+fT*imgH)
+            if (imgH < 40) { imgH = 40; imgW = 32; }
+            setImg(imgW, imgH, null);
+            card.style.setProperty('--qg', G + 'px');
+            card.style.paddingBottom = Math.round(G + fT * imgH) + 'px'; // 마이크 아래 = 이미지 위 여백 + 이미지 안의 여백
             markFitDigest();
         }
 
@@ -668,13 +667,13 @@
                         </h3>
                     </div>
 
-                    <div id="q-card" class="bg-white w-full rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center z-10 flex-1 min-h-0 overflow-hidden" style="padding: var(--qg, 0.5rem) 0.6vh; gap: var(--qg, 0.5rem); visibility: hidden;">
+                    <div id="q-card" class="bg-white w-full rounded-3xl shadow-xl border border-gray-100 relative flex flex-col items-center z-10 flex-1 min-h-0 overflow-hidden" style="padding: var(--qg, 8px) 6px; gap: var(--qg, 8px); visibility: hidden;">
 
                         <div id="q-split" class="contents w-full flex-1 min-h-0">
                         <div id="q-left" class="contents">
                         <img id="q-img" src="${data.image}" crossorigin="anonymous" class="rounded-xl object-cover shrink-0" alt="Question Image">
                         </div>
-                        <div id="q-right" class="contents w-full flex flex-col items-center" style="gap: var(--qg, 0.5rem);">
+                        <div id="q-right" class="contents w-full flex flex-col items-center" style="gap: var(--qg, 8px);">
 
                         <div id="qtext-block" class="invisible w-full flex items-center justify-center gap-2 px-2 shrink-0">
                             <button id="q-audio-btn" onclick="playAudio('${data.qAudio}')" class="invisible rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors shadow-sm shrink-0" style="width: var(--qb, 32px); height: var(--qb, 32px);"><i class="ph ph-speaker-high" style="font-size: calc(var(--qb, 32px) * 0.56);"></i></button>
@@ -694,7 +693,7 @@
                             </div>
                         </div>
 
-                        <div id="feedback-msg" class="relative w-full flex flex-col items-center shrink-0" style="gap: var(--qg, 0.5rem);">
+                        <div id="feedback-msg" class="relative w-full flex flex-col items-center shrink-0" style="gap: var(--qg, 8px);">
                             <span id="fb-sizer" class="hidden font-bold whitespace-nowrap">\u00A0</span>
                             <span id="fb-msg" class="invisible font-bold whitespace-nowrap max-w-full overflow-hidden text-ellipsis">\u00A0</span>
                             <span id="fb-score" class="invisible font-normal text-gray-400 whitespace-nowrap max-w-full overflow-hidden text-ellipsis">\u00A0</span>
