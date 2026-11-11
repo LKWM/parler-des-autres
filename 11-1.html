@@ -97,6 +97,12 @@
 
     <script>
         const GEMINI_FUNCTION_URL = "https://coreeno.base44.app/functions/GeminiChatSecure";
+        // 전사 지시문
+        const TRANSCRIBE_INSTRUCTION = `유저의 한국어 발화를 전사한다.
+1. 한글 외에 다른 문자는 사용할 수 없음.
+2. 발화를 하지 않는 구간이나 외국어로 발화하는 구간은 전사하지 않는다.
+3. 의미 없는 filler word나 말더듬기, 공백 등은 삭제하고 실제 단어나 문장만 전사한다.
+4. 문법, 발음 오류는 교정 없이 들리는 대로 전사한다.`;
 
         let lessonPermit = null;
         let lessonId = null;
@@ -277,8 +283,8 @@
         async function sendToGemini(base64Audio) {
             if (!lessonPermit || !lessonId) throw new Error('Lesson permit is not available yet.');
             const payload = {
-                model: "gemini-3.5-flash-lite",
-                systemInstruction: "유저 발화를 한글로 전사하시오",
+                model: "gemini-3.8-flash",
+                systemInstruction: TRANSCRIBE_INSTRUCTION,
                 contents: [
                     {
                         role: "user",
