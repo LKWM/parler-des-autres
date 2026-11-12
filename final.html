@@ -465,7 +465,7 @@ const pages = [
 
 // ── Q16  SPEAKING ── 발음 읽기 (쉬운 문장, 2회 허용)
 {
-    type:'speaking', qNum:16, mode:'clova',
+    type:'speaking', qNum:16, mode:'gemini_transcribe',
     instruction:"Lisez cette phrase à voix haute.",
     prompt:"이 사람은 우리 언니예요.",
     isKorean:true,
@@ -475,7 +475,7 @@ const pages = [
 
 // ── Q17  SPEAKING ── 프랑스어→한국어 (2회)
 {
-    type:'speaking', qNum:17, mode:'clova',
+    type:'speaking', qNum:17, mode:'gemini_transcribe',
     instruction:"Dites cette phrase en coréen.",
     prompt:"Je suis coréen.",
     isKorean:false,
@@ -488,7 +488,7 @@ const pages = [
 
 // ── Q18  SPEAKING ── 프랑스어→한국어 부정문 (1회)
 {
-    type:'speaking', qNum:18, mode:'clova',
+    type:'speaking', qNum:18, mode:'gemini_transcribe',
     instruction:"Dites cette phrase en coréen.",
     prompt:"Je ne suis pas professeur.",
     isKorean:false,
@@ -500,7 +500,7 @@ const pages = [
 
 // ── Q19  SPEAKING ── 프랑스어→한국어 국적 (1회)
 {
-    type:'speaking', qNum:19, mode:'clova',
+    type:'speaking', qNum:19, mode:'gemini_transcribe',
     instruction:"Dites cette phrase en coréen.",
     prompt:"Je suis belge.",
     isKorean:false,
@@ -887,7 +887,7 @@ function renderSpeaking(page){
     </div>`;
     if(alreadyDone){enableNext();return;}
     disableNext();
-    setupClovaRecording(page);
+    setupGeminiTranscribeRecording(page);
 }
 
 function renderSpeakingGeminiUI(page,alreadyDone){
@@ -932,8 +932,8 @@ function renderSpeakingGeminiUI(page,alreadyDone){
     setupGeminiRecording(page);
 }
 
-// ── Clova recording ───────────────────────────
-function setupClovaRecording(page){
+// ── Gemini transcription recording ────────────
+function setupGeminiTranscribeRecording(page){
     const btn=document.getElementById('rec-btn');
     const fb=document.getElementById('speak-feedback');
     if(!pageAnswers[currentPage])pageAnswers[currentPage]={attemptsUsed:0};
@@ -958,7 +958,7 @@ function setupClovaRecording(page){
                     const attLeft=page.maxAttempts-state.attemptsUsed;
                     if(attLeft<=0)btn.disabled=true;
                     fb.innerHTML=`<span class="text-indigo-400">Analyse en cours…</span>`;
-                    await processClovaSpeech(b64,page.referenceTexts,fb,page,btn);
+                    await processGeminiTranscribe(b64,page.referenceTexts,fb,page,btn);
                 };
                 stream.getTracks().forEach(t=>t.stop());
             };
@@ -983,7 +983,7 @@ function stopSpeakRecording(btn,fb){
     btn.innerHTML=`<i class="ph ph-microphone icon-fluid-lg"></i>`;
 }
 
-async function processClovaSpeech(b64,referenceTexts,fbEl,page,btnEl){
+async function processGeminiTranscribe(b64,referenceTexts,fbEl,page,btnEl){
     try{
         if(!lessonPermit||!lessonId)throw new Error('Lesson permit is not available yet.');
         const payload = { contents:[{role:"user",parts:[{inline_data:{mime_type:"audio/webm",data:b64}}]}] };
