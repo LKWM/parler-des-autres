@@ -957,8 +957,10 @@ function setupSpeakingRecording(page){
         if(isRecording){clearTimeout(recordingTimeout);stopSpeakRecording(btn,fb);return;}
         if((state.attemptsUsed||0)>=page.maxAttempts)return;
         try{
-            await initAudio();
+            // 마이크는 클릭 제스처 직후 즉시 요청한다. initAudio를 먼저 await 하면 iOS Safari에서
+            // 사용자 제스처가 소진돼 getUserMedia가 거부된다(Accès au micro refusé).
             const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+            initAudio();
             mediaRecorder=new MediaRecorder(stream);
             audioChunks=[];
             mediaRecorder.ondataavailable=e=>{if(e.data.size>0)audioChunks.push(e.data);};
