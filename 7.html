@@ -292,6 +292,7 @@
         // --- State ---
         let currentIndex = 0;
         let audioPlayer = new Audio();
+        let audioPlaying = false;
         let isRecording = false;
         let mediaRecorder;
         let audioChunks = [];
@@ -365,23 +366,81 @@
                 audioPlayer.currentTime = 0;
             }
             if(autoPlayTimeout) clearTimeout(autoPlayTimeout);
+            audioPlaying = false;
+            setMicEnabled(true);
         }
 
-        function playAudio(url, onEndCallback, delay = 0) {
+                function playAudio(url, onEndCallback, delay = 0) {
+            if (isRecording) return; // 녹음 중에는 오디오를 재생하지 않는다
             stopAudio();
             if (!url) return;
+            audioPlaying = true;
+            setMicEnabled(false); // 재생 예약 시점부터 마이크 비활성
             autoPlayTimeout = setTimeout(() => {
                 audioPlayer.src = url;
-                audioPlayer.play().catch(e => console.log("Audio blocked:", e));
-                audioPlayer.onended = () => { if (onEndCallback) onEndCallback(); };
+                audioPlayer.onended = () => {
+                    audioPlaying = false;
+                    setMicEnabled(true);
+                    if (onEndCallback) onEndCallback();
+                };
+                audioPlayer.onerror = () => { audioPlaying = false; setMicEnabled(true); };
+                audioPlayer.play().catch(e => {
+                    console.log("Audio blocked:", e);
+                    audioPlaying = false;
+                    setMicEnabled(true);
+                });
             }, delay);
         }
+
 
         function playAutoAudioIfNeeded(url) {
             if (!visitedPages.has(currentIndex)) {
                 visitedPages.add(currentIndex);
                 playAudio(url, null, 1000); 
             }
+        }
+
+        // 오디오 재생 중에는 마이크를, 녹음 중에는 오디오를 사용할 수 없다.
+        function setMicEnabled(enabled) {
+            const btn = document.getElementById('record-btn');
+            if (!btn) return;
+            const state = getExerciseState(currentIndex);
+            const blocked = state.passed || state.attempts >= 3;
+            const on = enabled && !blocked;
+            btn.disabled = !on;
+            btn.classList.toggle('opacity-50', !on);
+            btn.classList.toggle('cursor-not-allowed', !on);
+        }
+
+        // 전사 결과는 페이지를 다시 그리지 않고 피드백 영역만 갱신한다(재로드·애니메이션 방지).
+        function updateRepeatFeedback(state) {
+            const feedbackArea = document.getElementById('feedback-area');
+            const recordBtn = document.getElementById('record-btn');
+            if (!feedbackArea || !recordBtn) return;
+            if (state.passed) {
+                feedbackArea.innerHTML = `
+                    <div class="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm w-full">
+                        <span class="font-bold block">Très bien ! Score: ${state.lastScore}</span>
+                        ${state.lastText ? `<span class="text-xs font-normal opacity-80">"${state.lastText}"</span>` : ''}
+                    </div>`;
+                recordBtn.disabled = true;
+                recordBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else if (state.attempts >= 3) {
+                feedbackArea.innerHTML = `
+                    <div class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm w-full">
+                        <span class="font-bold block">Passons à la suite. Score: ${state.lastScore}</span>
+                        ${state.lastText ? `<span class="text-xs font-normal opacity-80">"${state.lastText}"</span>` : ''}
+                    </div>`;
+                recordBtn.disabled = true;
+                recordBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else if (state.attempts > 0) {
+                feedbackArea.innerHTML = `
+                    <div class="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg text-sm w-full">
+                        <span class="font-bold block">Essayez encore (${state.attempts}/3). Score: ${state.lastScore}</span>
+                        ${state.lastText ? `<span class="text-xs font-normal opacity-80">"${state.lastText}"</span>` : ''}
+                    </div>`;
+            }
+            setMicEnabled(!audioPlaying);
         }
 
         function getExerciseState(index) {
@@ -545,15 +604,19 @@
             };
 
             recordBtn.onclick = async () => {
-                if (state.attempts >= 3 || state.passed) return; 
+                if (state.attempts >= 3 || state.passed) return;
+                if (audioPlaying) return; // 오디오 재생 중에는 마이크 사용 금지 
                 if (!isRecording) {
                     try {
                         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        if (audioPlayer) { audioPlayer.pause(); audioPlayer.currentTime = 0; }
+                        if (listenBtn) { listenBtn.disabled = true; listenBtn.classList.add('opacity-50', 'cursor-not-allowed'); }
                         mediaRecorder = new MediaRecorder(stream);
                         audioChunks = [];
                         mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
                         
                         mediaRecorder.onstop = async () => {
+                            if (listenBtn) { listenBtn.disabled = false; listenBtn.classList.remove('opacity-50', 'cursor-not-allowed'); }
                             stream.getTracks().forEach(track => track.stop());
                             if (recordingTimeout) clearTimeout(recordingTimeout);
                             
@@ -588,7 +651,7 @@
 
                         recordBtn.classList.add('bg-red-500', 'text-white', 'ring-red-200');
                         recordBtn.innerHTML = '<i class="ph ph-stop text-3xl md:text-4xl"></i>';
-                        feedbackArea.innerHTML = '<p class="text-indigo-600 animate-pulse text-sm">Enregistrement...</p>';
+                        feedbackArea.innerHTML = '<p class="text-indigo-600 text-sm">Enregistrement...</p>';
                     } catch (err) {
                         console.error(err);
                         feedbackArea.innerHTML = '<p class="text-red-400 text-sm">Microphone requis.</p>';
@@ -892,7 +955,7 @@
                 if(correctSound) correctSound.triggerAttackRelease('G2', '0.2s');
             }
             
-            render(); 
+            updateRepeatFeedback(state); 
             updateProgress();
         }
 
