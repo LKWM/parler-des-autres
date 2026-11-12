@@ -96,12 +96,6 @@
     <script>
         const BASE_44_ORIGIN = "https://coreeno.base44.app"; 
         const GEMINI_URL = BASE_44_ORIGIN + '/functions/GeminiChatSecure';
-        // 따라 말하기 전사 지시문
-        const TRANSCRIBE_INSTRUCTION = `유저의 한국어 발화를 전사한다.
-1. 한글 외에 다른 문자는 사용할 수 없음.
-2. 발화를 하지 않는 구간이나 외국어로 발화하는 구간은 전사하지 않는다.
-3. 의미 없는 filler word나 말더듬기, 공백 등은 삭제하고 실제 단어나 문장만 전사한다.
-4. 문법, 발음 오류는 교정 없이 들리는 대로 전사한다.`;
         let lessonPermit = null;
         let lessonId = null;
         window.addEventListener('message', (event) => {
@@ -834,7 +828,11 @@
                 const res = await fetch(GEMINI_URL, {
                     method: 'POST', 
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...payload, systemInstruction: TRANSCRIBE_INSTRUCTION, model: "gemini-3.8-flash", permit: lessonPermit, lesson_id: lessonId })
+                    body: JSON.stringify({ ...payload, systemInstruction: `유저의 한국어 발화를 전사한다.
+1. 한글 외에 다른 문자는 사용할 수 없음.
+2. 발화를 하지 않는 구간이나 외국어로 발화하는 구간은 전사하지 않는다.
+3. 의미 없는 filler word나 말더듬기, 공백 등은 삭제하고 실제 단어나 문장만 전사한다.
+4. 문법, 발음 오류는 교정 없이 들리는 대로 전사한다.`, model: "gemini-3.8-flash", permit: lessonPermit, lesson_id: lessonId })
                 });
 
                 if (!res.ok) throw new Error("API Error: " + res.status); 
