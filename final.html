@@ -210,14 +210,7 @@
 // CONFIG
 // ─────────────────────────────────────────────
 const BASE_44_ORIGIN    = "https://coreeno.base44.app";
-const GEMINI_STT_URL  = BASE_44_ORIGIN + '/functions/GeminiChatSecure';
-// 전사 지시문
-const TRANSCRIBE_INSTRUCTION = `유저의 한국어 발화를 전사한다.
-1. 한글 외에 다른 문자는 사용할 수 없음.
-2. 발화를 하지 않는 구간이나 외국어로 발화하는 구간은 전사하지 않는다.
-3. 의미 없는 filler word나 말더듬기, 공백 등은 삭제하고 실제 단어나 문장만 전사한다.
-4. 문법, 발음 오류는 교정 없이 들리는 대로 전사한다.`;
-const GEMINI_EVAL_URL = BASE_44_ORIGIN + '/functions/GeminiChatSecure';
+const GEMINI_URL     = BASE_44_ORIGIN + '/functions/GeminiChatSecure';
 let lessonPermit = null;
 let lessonId = null;
 window.addEventListener('message', (event) => {
@@ -465,7 +458,12 @@ const pages = [
 
 // ── Q16  SPEAKING ── 발음 읽기 (쉬운 문장, 2회 허용)
 {
-    type:'speaking', qNum:16, mode:'gemini_transcribe',
+    type:'speaking', qNum:16,
+    systemInstruction: `유저의 한국어 발화를 전사한다.
+1. 한글 외에 다른 문자는 사용할 수 없음.
+2. 발화를 하지 않는 구간이나 외국어로 발화하는 구간은 전사하지 않는다.
+3. 의미 없는 filler word나 말더듬기, 공백 등은 삭제하고 실제 단어나 문장만 전사한다.
+4. 문법, 발음 오류는 교정 없이 들리는 대로 전사한다.`,
     instruction:"Lisez cette phrase à voix haute.",
     prompt:"이 사람은 우리 언니예요.",
     isKorean:true,
@@ -475,7 +473,12 @@ const pages = [
 
 // ── Q17  SPEAKING ── 프랑스어→한국어 (2회)
 {
-    type:'speaking', qNum:17, mode:'gemini_transcribe',
+    type:'speaking', qNum:17,
+    systemInstruction: `유저의 한국어 발화를 전사한다.
+1. 한글 외에 다른 문자는 사용할 수 없음.
+2. 발화를 하지 않는 구간이나 외국어로 발화하는 구간은 전사하지 않는다.
+3. 의미 없는 filler word나 말더듬기, 공백 등은 삭제하고 실제 단어나 문장만 전사한다.
+4. 문법, 발음 오류는 교정 없이 들리는 대로 전사한다.`,
     instruction:"Dites cette phrase en coréen.",
     prompt:"Je suis coréen.",
     isKorean:false,
@@ -488,7 +491,12 @@ const pages = [
 
 // ── Q18  SPEAKING ── 프랑스어→한국어 부정문 (1회)
 {
-    type:'speaking', qNum:18, mode:'gemini_transcribe',
+    type:'speaking', qNum:18,
+    systemInstruction: `유저의 한국어 발화를 전사한다.
+1. 한글 외에 다른 문자는 사용할 수 없음.
+2. 발화를 하지 않는 구간이나 외국어로 발화하는 구간은 전사하지 않는다.
+3. 의미 없는 filler word나 말더듬기, 공백 등은 삭제하고 실제 단어나 문장만 전사한다.
+4. 문법, 발음 오류는 교정 없이 들리는 대로 전사한다.`,
     instruction:"Dites cette phrase en coréen.",
     prompt:"Je ne suis pas professeur.",
     isKorean:false,
@@ -500,7 +508,12 @@ const pages = [
 
 // ── Q19  SPEAKING ── 프랑스어→한국어 국적 (1회)
 {
-    type:'speaking', qNum:19, mode:'gemini_transcribe',
+    type:'speaking', qNum:19,
+    systemInstruction: `유저의 한국어 발화를 전사한다.
+1. 한글 외에 다른 문자는 사용할 수 없음.
+2. 발화를 하지 않는 구간이나 외국어로 발화하는 구간은 전사하지 않는다.
+3. 의미 없는 filler word나 말더듬기, 공백 등은 삭제하고 실제 단어나 문장만 전사한다.
+4. 문법, 발음 오류는 교정 없이 들리는 대로 전사한다.`,
     instruction:"Dites cette phrase en coréen.",
     prompt:"Je suis belge.",
     isKorean:false,
@@ -513,7 +526,8 @@ const pages = [
 
 // ── Q20  SPEAKING ── Gemini 자유 발화 (인터뷰 UI, 1회)
 {
-    type:'speaking', qNum:20, mode:'gemini',
+    type:'speaking', qNum:20,
+    systemInstruction: `다음 발화가 "직업이 뭐예요?"에 대한 정답으로 적절한 한국어 문장인지 평가하고 0-1의 숫자로만 회신한다. 완벽한 답이면 1, 내용을 이해할 수 있지만 문법 오류가 있거나 단어가 명확하지 않은 경우 0.5, 질문에 대한 적절한 답이 아닌 경우 0에 해당한다.`,
     instruction:"Répondez à la question suivante en coréen.",
     prompt:"직업이 뭐예요?",
     isKorean:true,
@@ -857,7 +871,7 @@ function renderSpeaking(page){
     const saved=(pageAnswers[currentPage]||{});
     const alreadyDone=saved.submitted;
 
-    if(page.mode==='gemini'){renderSpeakingGeminiUI(page,alreadyDone);return;}
+    if(page.audioPrompt){renderSpeakingQuestion(page,alreadyDone);return;}
 
     const cardContent=page.isKorean
         ?`<span class="text-fluid-xl font-bold text-indigo-900 korean-text">${page.prompt}</span>`
@@ -887,10 +901,10 @@ function renderSpeaking(page){
     </div>`;
     if(alreadyDone){enableNext();return;}
     disableNext();
-    setupGeminiTranscribeRecording(page);
+    setupSpeakingRecording(page);
 }
 
-function renderSpeakingGeminiUI(page,alreadyDone){
+function renderSpeakingQuestion(page,alreadyDone){
     container.innerHTML=`
     <div class="page-wrapper fade-in">
       <div class="flex flex-col items-center w-full gap-[3vh]">
@@ -929,11 +943,11 @@ function renderSpeakingGeminiUI(page,alreadyDone){
     }
     if(alreadyDone){enableNext();return;}
     disableNext();
-    setupGeminiRecording(page);
+    setupSpeakingRecording(page);
 }
 
-// ── Gemini transcription recording ────────────
-function setupGeminiTranscribeRecording(page){
+// ── Speaking recording ────────────────────────
+function setupSpeakingRecording(page){
     const btn=document.getElementById('rec-btn');
     const fb=document.getElementById('speak-feedback');
     if(!pageAnswers[currentPage])pageAnswers[currentPage]={attemptsUsed:0};
@@ -941,13 +955,13 @@ function setupGeminiTranscribeRecording(page){
 
     btn.onclick=async()=>{
         if(isRecording){clearTimeout(recordingTimeout);stopSpeakRecording(btn,fb);return;}
-        if(state.attemptsUsed>=page.maxAttempts){return;}
+        if((state.attemptsUsed||0)>=page.maxAttempts)return;
         try{
             await initAudio();
             const stream=await navigator.mediaDevices.getUserMedia({audio:true});
             mediaRecorder=new MediaRecorder(stream);
             audioChunks=[];
-            mediaRecorder.ondataavailable=e=>audioChunks.push(e.data);
+            mediaRecorder.ondataavailable=e=>{if(e.data.size>0)audioChunks.push(e.data);};
             mediaRecorder.onstop=async()=>{
                 const blob=new Blob(audioChunks,{type:'audio/webm'});
                 const reader=new FileReader();
@@ -958,7 +972,7 @@ function setupGeminiTranscribeRecording(page){
                     const attLeft=page.maxAttempts-state.attemptsUsed;
                     if(attLeft<=0)btn.disabled=true;
                     fb.innerHTML=`<span class="text-indigo-400">Analyse en cours…</span>`;
-                    await processGeminiTranscribe(b64,page.referenceTexts,fb,page,btn);
+                    await sendSpeakingAudio(b64,page,fb,btn);
                 };
                 stream.getTracks().forEach(t=>t.stop());
             };
@@ -975,6 +989,7 @@ function setupGeminiTranscribeRecording(page){
     };
 }
 
+
 function stopSpeakRecording(btn,fb){
     if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop();
     clearTimeout(recordingTimeout);isRecording=false;
@@ -983,48 +998,24 @@ function stopSpeakRecording(btn,fb){
     btn.innerHTML=`<i class="ph ph-microphone icon-fluid-lg"></i>`;
 }
 
-async function processGeminiTranscribe(b64,referenceTexts,fbEl,page,btnEl){
+async function sendSpeakingAudio(b64,page,fbEl,btnEl){
     try{
         if(!lessonPermit||!lessonId)throw new Error('Lesson permit is not available yet.');
-        const payload = { contents:[{role:"user",parts:[{inline_data:{mime_type:"audio/webm",data:b64}}]}] };
-        const res=await fetch(GEMINI_STT_URL,{
+        const res=await fetch(GEMINI_URL,{
             method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({...payload, systemInstruction:TRANSCRIBE_INSTRUCTION, model:"gemini-3.8-flash", permit:lessonPermit, lesson_id:lessonId})
+            body:JSON.stringify({
+                contents:[{role:"user",parts:[{inline_data:{mime_type:"audio/webm",data:b64}}]}],
+                systemInstruction:page.systemInstruction,
+                model:"gemini-3.8-flash",
+                permit:lessonPermit,
+                lesson_id:lessonId
+            })
         });
-        if(!res.ok)throw new Error("API Error");
+        if(!res.ok)throw new Error("API Error: "+res.status);
         const data=await res.json();
-        const recognized=(data.text||'').trim();
-        const norm=s=>s.replace(/[.!?,。！？]/g,'').trim();
-        let best=0;
-        (referenceTexts||[]).forEach(ref=>{
-            const sim=calcSimilarity(norm(recognized),norm(ref));
-            if(sim>best)best=sim;
-        });
-        // Tiered scoring: <60%=0, 60-80%=0.5, 80-90%=0.7, >=90%=1
-        let tierScore=0;
-        if(best>=0.9)tierScore=1;
-        else if(best>=0.8)tierScore=0.7;
-        else if(best>=0.6)tierScore=0.5;
-
-        if(!pageAnswers[currentPage])pageAnswers[currentPage]={};
-        const state=pageAnswers[currentPage];
-        const attLeft=page.maxAttempts-(state.attemptsUsed||0);
-
-        if(tierScore>0){
-            state.score=tierScore;state.submitted=true;
-            btnEl.disabled=true;
-            btnEl.innerHTML=`<i class="ph ph-check icon-fluid-md text-green-500"></i>`;
-            fbEl.innerHTML=`<span class="text-green-500 font-bold">Enregistrement reçu ✓</span>`;
-            playSuccessSound();
-            enableNext();
-        } else if(attLeft<=0){
-            state.score=0;state.submitted=true;
-            fbEl.innerHTML=`<span class="text-orange-400">Essais épuisés.</span>`;
-            enableNext();
-        } else {
-            fbEl.innerHTML=`<span class="text-orange-400">Réessayez. (${attLeft} essai${attLeft>1?'s':''} restant${attLeft>1?'s':''})</span>`;
-            btnEl.disabled=false;
-        }
+        const text=(data.text||'').trim();
+        if(page.referenceTexts)return scoreByReference(text,page,fbEl,btnEl);
+        return scoreByModelValue(text,page,fbEl,btnEl);
     }catch(e){
         console.error(e);
         if(!pageAnswers[currentPage])pageAnswers[currentPage]={};
@@ -1034,88 +1025,51 @@ async function processGeminiTranscribe(b64,referenceTexts,fbEl,page,btnEl){
     }
 }
 
-// ── Gemini recording ──────────────────────────
-const GEMINI_SYSTEM_INSTRUCTION=
-    "다음 발화가 \"직업이 뭐예요?\"에 대한 정답으로 적절한 한국어 문장인지 평가하고 0-1의 숫자로만 회신한다. 완벽한 답이면 1, 내용을 이해할 수 있지만 문법 오류가 있거나 단어가 명확하지 않은 경우 0.5, 질문에 대한 적절한 답이 아닌 경우 0에 해당한다.";
+// 전사값과 기대 발화값의 유사도 채점
+function scoreByReference(recognized,page,fbEl,btnEl){
+    const norm=s=>s.replace(/[.!?,。！？]/g,'').trim();
+    let best=0;
+    (page.referenceTexts||[]).forEach(ref=>{
+        const sim=calcSimilarity(norm(recognized),norm(ref));
+        if(sim>best)best=sim;
+    });
+    let tierScore=0;
+    if(best>=0.9)tierScore=1;
+    else if(best>=0.8)tierScore=0.7;
+    else if(best>=0.6)tierScore=0.5;
 
-function setupGeminiRecording(page){
-    const btn=document.getElementById('rec-btn');
-    const fb=document.getElementById('speak-feedback');
+    if(!pageAnswers[currentPage])pageAnswers[currentPage]={};
+    const state=pageAnswers[currentPage];
+    const attLeft=page.maxAttempts-(state.attemptsUsed||0);
 
-    btn.onclick=async()=>{
-        if(isRecording){clearTimeout(recordingTimeout);stopSpeakRecording(btn,fb);return;}
-        try{
-            await initAudio();
-            const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-            mediaRecorder=new MediaRecorder(stream);
-            audioChunks=[];
-            mediaRecorder.ondataavailable=e=>{if(e.data.size>0)audioChunks.push(e.data);};
-            mediaRecorder.onstop=async()=>{
-                const blob=new Blob(audioChunks,{type:'audio/webm'});
-                stream.getTracks().forEach(t=>t.stop());
-                btn.disabled=true;
-                fb.innerHTML=`<span class="text-indigo-400">Analyse en cours…</span>`;
-                await processGeminiSpeech(blob,fb);
-            };
-            mediaRecorder.start();isRecording=true;
-            btn.classList.add('recording-pulse','bg-red-500','text-white','border-red-500');
-            btn.classList.remove('bg-white','text-indigo-600','border-gray-100');
-            btn.innerHTML=`<i class="ph ph-stop icon-fluid-md"></i>`;
-            fb.innerHTML=`<span class="text-red-500 font-bold">Enregistrement…</span>`;
-            recordingTimeout=setTimeout(()=>{if(isRecording)stopSpeakRecording(btn,fb);},6000);
-        }catch(err){
-            console.error(err);
-            fb.innerHTML=`<span class="text-red-400">Accès au micro refusé.</span>`;
-        }
-    };
-}
-
-async function processGeminiSpeech(blob,fbEl){
-    try{
-        const reader=new FileReader();
-        reader.readAsDataURL(blob);
-        reader.onloadend=async()=>{
-            const base64data=reader.result.split(',')[1];
-            const mimeType=blob.type?blob.type.split(';')[0]:'audio/webm';
-            try{
-                if(!lessonPermit||!lessonId)throw new Error('Lesson permit is not available yet.');
-                const res=await fetch(GEMINI_EVAL_URL,{
-                    method:'POST',headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({
-                        contents:[{role:"user",parts:[{inline_data:{mime_type:mimeType,data:base64data}}]}],
-                        systemInstruction:GEMINI_SYSTEM_INSTRUCTION,
-                        model:"gemini-3.5-flash-lite",
-                        permit:lessonPermit,
-                        lesson_id:lessonId
-                    })
-                });
-                if(!res.ok)throw new Error(`API ${res.status}`);
-                const result=await res.json();
-                const rawText=(result.text||'').trim();
-                const score=parseFloat(rawText.replace(/[^0-9.]/g,''))||0;
-                if(!pageAnswers[currentPage])pageAnswers[currentPage]={};
-                pageAnswers[currentPage].score=Math.min(1,Math.max(0,score));
-                pageAnswers[currentPage].submitted=true;
-                fbEl.innerHTML=`<span class="text-green-500 font-bold">Enregistrement reçu ✓</span>`;
-                enableNext();
-            }catch(apiErr){
-                console.error("Gemini API Error",apiErr);
-                if(!pageAnswers[currentPage])pageAnswers[currentPage]={};
-                pageAnswers[currentPage].score=0;pageAnswers[currentPage].submitted=true;
-                fbEl.innerHTML=`<span class="text-orange-400">Erreur serveur.</span>`;
-                enableNext();
-            }
-        };
-    }catch(err){
-        console.error(err);
-        if(!pageAnswers[currentPage])pageAnswers[currentPage]={};
-        pageAnswers[currentPage].score=0;pageAnswers[currentPage].submitted=true;
-        fbEl.innerHTML=`<span class="text-orange-400">Erreur de traitement.</span>`;
+    if(tierScore>0){
+        state.score=tierScore;state.submitted=true;
+        btnEl.disabled=true;
+        btnEl.innerHTML=`<i class="ph ph-check icon-fluid-md text-green-500"></i>`;
+        fbEl.innerHTML=`<span class="text-green-500 font-bold">Enregistrement reçu ✓</span>`;
+        playSuccessSound();
         enableNext();
+    } else if(attLeft<=0){
+        state.score=0;state.submitted=true;
+        fbEl.innerHTML=`<span class="text-orange-400">Essais épuisés.</span>`;
+        enableNext();
+    } else {
+        fbEl.innerHTML=`<span class="text-orange-400">Réessayez. (${attLeft} essai${attLeft>1?'s':''} restant${attLeft>1?'s':''})</span>`;
+        btnEl.disabled=false;
     }
 }
 
-// ─────────────────────────────────────────────
+// 문제별 instruction 이 점수를 회신하는 채점형 과제
+function scoreByModelValue(rawText,page,fbEl,btnEl){
+    if(!pageAnswers[currentPage])pageAnswers[currentPage]={};
+    const score=parseFloat(rawText.replace(/[^0-9.]/g,''))||0;
+    pageAnswers[currentPage].score=Math.min(1,Math.max(0,score));
+    pageAnswers[currentPage].submitted=true;
+    fbEl.innerHTML=`<span class="text-green-500 font-bold">Enregistrement reçu ✓</span>`;
+    enableNext();
+}
+
+
 // RESULTS — per-question score rows
 // ─────────────────────────────────────────────
 function renderResults(){
